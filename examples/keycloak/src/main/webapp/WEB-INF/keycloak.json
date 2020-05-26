@@ -1,0 +1,10 @@
+{
+  "realm": "myrealm",
+  "auth-server-url": "http://127.0.0.1:8080/auth/",
+  "ssl-required": "external",
+  "resource": "app-profile-jsp",
+  "credentials": {
+    "secret": "dfaa1506-0290-4379-9e78-a08293feb1c2"
+  },
+  "confidential-port": 0
+}
