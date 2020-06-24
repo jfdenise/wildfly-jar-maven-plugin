@@ -86,17 +86,17 @@
             <dependency>
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-core</artifactId>
-                <version>9.0.2</version>
+                <version>10.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-adapter-core</artifactId>
-                <version>9.0.2</version>
+                <version>10.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.keycloak</groupId>
                 <artifactId>keycloak-adapter-spi</artifactId>
-                <version>9.0.2</version>
+                <version>10.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.spec.javax.servlet</groupId>

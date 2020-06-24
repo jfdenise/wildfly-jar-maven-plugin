@@ -44,13 +44,15 @@
                     <feature-packs>
                         <feature-pack>
                             <location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</location>
+                            <!--<location>org.jboss.eap:wildfly-galleon-pack:7.3.2.GA-redhat-SNAPSHOT</location>-->
                             <inherit-configs>false</inherit-configs>
                             <inherit-packages>false</inherit-packages>
                         </feature-pack>
                         <feature-pack>
                             <groupId>org.keycloak</groupId>
+                            <!-- <groupId>org.jboss.sso</groupId> -->
                             <artifactId>keycloak-adapter-galleon-pack</artifactId>
-                            <version>9.0.4-SNAPSHOT</version>
+                            <version>11.0.0-SNAPSHOT</version>
                             <inherit-configs>false</inherit-configs>
                             <inherit-packages>false</inherit-packages>
                         </feature-pack>
