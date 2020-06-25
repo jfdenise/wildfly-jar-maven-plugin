@@ -33,6 +33,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -95,8 +96,11 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
     public static final String BOOTABLE_SUFFIX = "wildfly";
     public static final String JAR = "jar";
     public static final String WAR = "war";
-    private static final String MODULE_ID_JAR_RUNTIME = "org.wildfly.bootable-jar";
-
+    private static final String BOOT_GROUPID = "org.wildfly.core";
+    private static final String BOOT_ARTIFACTID = "wildfly-jar-boot";
+    private static final String BOOT_GA = BOOT_GROUPID + ":" + BOOT_ARTIFACTID;
+    private static final String WILDFLY_RESOURCES_DIR = "wildfly";
+    private static final String WILDFLY_VERSIONS_FILE = "artifact-versions.properties";
     @Component
     RepositorySystem repoSystem;
 
@@ -670,8 +674,16 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
             ProvisioningRuntime rt = pm.getRuntime(config);
             String version = null;
             for (FeaturePackRuntime fprt : rt.getFeaturePacks()) {
-                if (fprt.getPackage(MODULE_ID_JAR_RUNTIME) != null) {
-                    version = fprt.getFPID().getBuild();
+                Path versions = fprt.getResource(WILDFLY_RESOURCES_DIR, WILDFLY_VERSIONS_FILE);
+                Map<String, String> map = null;
+                try {
+                    map = readProperties(versions);
+                } catch (Exception ex) {
+                    throw new ProvisioningException(ex);
+                }
+                String value = map.get(BOOT_GA);
+                if (value != null) {
+                    version = getVersion(value);
                     break;
                 }
             }
@@ -681,6 +693,31 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
             pm.provision(rt.getLayout());
             return version;
         }
+    }
+
+    private static String getVersion(String value) {
+        String[] parts = value.split(":");
+        // 0 groupID, 1 artifactId, 2 version
+        return parts[2];
+    }
+
+    private static Map<String, String> readProperties(Path propsFile) throws Exception {
+        final Map<String, String> propsMap = new HashMap<>();
+        try (BufferedReader reader = Files.newBufferedReader(propsFile)) {
+            String line = reader.readLine();
+            while (line != null) {
+                line = line.trim();
+                if (line.charAt(0) != '#' && !line.isEmpty()) {
+                    final int i = line.indexOf('=');
+                    if (i < 0) {
+                        throw new Exception("Failed to parse property " + line + " from " + propsFile);
+                    }
+                    propsMap.put(line.substring(0, i), line.substring(i + 1));
+                }
+                line = reader.readLine();
+            }
+        }
+        return propsMap;
     }
 
     private void deploy(List<String> commands) throws IOException, MojoExecutionException {
@@ -722,13 +759,12 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
 
         try {
             final ArtifactResult result = artifactResolver.resolveArtifact(buildingRequest,
-                    new DefaultArtifact("org.wildfly.core", "wildfly-jar-boot", version,
+                    new DefaultArtifact(BOOT_GROUPID, BOOT_ARTIFACTID, version,
                             "provided", JAR, null,
                             new DefaultArtifactHandler(JAR)));
             return result.getArtifact().getFile().toPath();
         } catch (ArtifactResolverException ex) {
-            throw new MojoExecutionException("Can't resolve boot artifact, server depends on wildfly-core "
-                    + version + " that doesn't support bootable jar packaging");
+            throw new MojoExecutionException("Can't resolve boot artifact: " + BOOT_GROUPID + ":" + BOOT_ARTIFACTID + ":" + version, ex);
         }
     }
 
