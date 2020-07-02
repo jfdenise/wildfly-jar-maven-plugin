@@ -1,0 +1,2 @@
+# To expose routes
+/interface=management:write-attribute(name=inet-address,value=${env.HOSTNAME})
