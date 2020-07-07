@@ -1,0 +1,1 @@
+/subsystem=microprofile-config-smallrye/config-source=config-map:add(dir={path=${env.MICROPROFILE_CONFIG_DIR}}, ordinal=${env.MICROPROFILE_CONFIG_DIR_ORDINAL:500})

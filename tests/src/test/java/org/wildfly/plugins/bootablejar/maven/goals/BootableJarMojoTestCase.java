@@ -311,6 +311,27 @@ public class BootableJarMojoTestCase extends AbstractConfiguredMojoTestCase {
         }
     }
 
+    @Test
+    public void testOpenshiftConfiguration()
+            throws Exception {
+        Path dir = setupProject("test10-pom.xml", true, null);
+        try {
+            BuildBootableJarMojo mojo = (BuildBootableJarMojo) lookupConfiguredMojo(dir.resolve("pom.xml").toFile(), "package");
+            assertNotNull(mojo);
+            assertFalse(mojo.layers.isEmpty());
+            assertFalse(mojo.cloud == null);
+            assertTrue(mojo.layers.size() == 1);
+            assertTrue(mojo.layers.get(0).equals("jaxrs"));
+            mojo.recordState = true;
+            mojo.execute();
+            String[] layers = {"jaxrs", "microprofile-health", "core-tools"};
+            checkJar(dir, true, true, layers, null);
+            checkDeployment(dir, true);
+        } finally {
+            BuildBootableJarMojo.deleteDir(dir);
+        }
+    }
+
     private void checkJar(Path dir, boolean expectDeployment, boolean isRoot,
             String[] layers, String[] excludedLayers, String... configTokens) throws Exception {
         Path tmpDir = Files.createTempDirectory("bootable-jar-test-unzipped");

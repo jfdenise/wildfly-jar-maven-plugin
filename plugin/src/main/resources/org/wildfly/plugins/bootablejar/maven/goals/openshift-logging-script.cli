@@ -1,0 +1,6 @@
+if (outcome == success) of /subsystem=logging/root-logger=ROOT:read-resource
+/subsystem=logging/root-logger=ROOT:write-attribute(name=level,value=INFO
+end-if
+if (outcome == success) of /subsystem=logging/console-handler=CONSOLE:read-resource
+/subsystem=logging/console-handler=CONSOLE:write-attribute(name=level
+end-if
