@@ -16,10 +16,11 @@
  */
 package org.wildfly.plugins.bootablejar.extensions.cloud;
 
-import java.io.IOException;
+import org.wildfly.plugins.bootablejar.extensions.cloud.generators.MPConfigMapCLIGenerator;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -38,12 +39,17 @@ public class CloudExtension implements RuntimeExtension {
     private static final String OPENSHIFT_HOST_NAME_ENV = "HOSTNAME";
     private static final String JBOSS_NODE_NAME_PROPERTY = "jboss.node.name";
 
+    private static final List<CLIGenerator> GENERATORS = new ArrayList<>();
+
+    static {
+        GENERATORS.add(new MPConfigMapCLIGenerator());
+    }
     @Override
     public void boot(List<String> args, Path installDir) throws Exception {
        handleCloud(args, installDir);
     }
 
-    private static void handleCloud(List<String> args, Path installDir) throws IOException {
+    private static void handleCloud(List<String> args, Path installDir) throws Exception {
         Properties props = new Properties();
         // For now no difference.
         boolean isOpenshift;
@@ -114,11 +120,22 @@ public class CloudExtension implements RuntimeExtension {
         }
     }
 
-    private static Path generateCliScript(Path installDir) throws IOException {
-        Path scriptFile = installDir.resolve("boot-config.cli");
-        Files.deleteIfExists(scriptFile);
-        String content = "/system-property=foo:add(value=bar)";
-        Files.write(scriptFile, content.getBytes());
-        return scriptFile;
+    private static Path generateCliScript(Path installDir) throws Exception {
+        List<String> cmds = new ArrayList<>();
+        for (CLIGenerator generator : GENERATORS) {
+            generator.generate(cmds);
+        }
+        if (cmds.isEmpty()) {
+            return null;
+        } else {
+            Path scriptFile = installDir.resolve("boot-config.cli");
+            Files.deleteIfExists(scriptFile);
+            StringBuilder builder = new StringBuilder();
+            for(String cmd : cmds) {
+                builder.append(cmd).append("\n");
+            }
+            Files.write(scriptFile, builder.toString().getBytes());
+            return scriptFile;
+        }
     }
 }
