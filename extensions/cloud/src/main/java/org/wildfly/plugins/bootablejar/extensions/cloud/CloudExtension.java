@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.extensions.cloud;
 
+import java.io.FileOutputStream;
 import org.wildfly.plugins.bootablejar.extensions.cloud.generators.MPConfigMapCLIGenerator;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -27,6 +28,8 @@ import java.util.Properties;
 import java.util.Set;
 import org.wildfly.core.jar.boot.Main;
 import org.wildfly.core.jar.boot.RuntimeExtension;
+import org.wildfly.plugins.bootablejar.extensions.cloud.generators.StatefulSetCLIGenerator;
+import org.wildfly.plugins.bootablejar.extensions.cloud.generators.TracingCLIGenerator;
 
 /**
  *
@@ -43,6 +46,8 @@ public class CloudExtension implements RuntimeExtension {
 
     static {
         GENERATORS.add(new MPConfigMapCLIGenerator());
+        GENERATORS.add(new StatefulSetCLIGenerator());
+        GENERATORS.add(new TracingCLIGenerator());
     }
     @Override
     public void boot(List<String> args, Path installDir) throws Exception {
@@ -112,11 +117,28 @@ public class CloudExtension implements RuntimeExtension {
 
         Path scriptFile = generateCliScript(installDir);
         if (scriptFile != null) {
-            Path markerDir = installDir.resolve("boot-marker-dir");
+            Path markerDir = installDir.resolve("cli-boot-marker-dir");
             Files.createDirectory(markerDir);
+
+            Path propertiesFile = installDir.resolve("cli-script-property.properties");
+            Path errorFile = installDir.resolve("cli-script-error.cli");
+            Path warnFile = installDir.resolve("cli-script-warning.cli");
+            Properties cliProperties = new Properties();
+            cliProperties.setProperty("error_file", errorFile.toString());
+            cliProperties.setProperty("warning_file", warnFile.toString());
+            try (FileOutputStream s = new FileOutputStream(propertiesFile.toFile())) {
+                cliProperties.store(s, "CLI properties");
+            }
+
+            Path outputFile = installDir.resolve("cli-script-output.cli");
+
             args.add("--start-mode=admin-only");
             args.add("-Dorg.wildfly.internal.cli.boot.hook.script=" + scriptFile);
             args.add("-Dorg.wildfly.internal.cli.boot.hook.marker.dir=" + markerDir);
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.properties=" + propertiesFile);
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.output.file=" + outputFile);
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.error.file=" + errorFile);
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.warn.file=" + warnFile);
         }
     }
 

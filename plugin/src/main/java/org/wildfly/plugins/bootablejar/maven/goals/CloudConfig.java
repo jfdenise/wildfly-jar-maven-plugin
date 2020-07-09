@@ -107,6 +107,13 @@ public class CloudConfig {
             commands.addAll(lines);
         }
 
+        try (InputStream stream = BuildBootableJarMojo.class.getResourceAsStream("openshift-tracing-script.cli")) {
+            List<String> lines
+                    = new BufferedReader(new InputStreamReader(stream,
+                            StandardCharsets.UTF_8)).lines().collect(Collectors.toList());
+            commands.addAll(lines);
+        }
+
 //        if (openshift.enableMicroprofileConfigMap) {
 //            try (InputStream stream = BuildBootableJarMojo.class.getResourceAsStream("openshift-mp-config-script.cli")) {
 //                List<String> lines
