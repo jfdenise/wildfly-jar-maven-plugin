@@ -324,7 +324,8 @@ public class BootableJarMojoTestCase extends AbstractConfiguredMojoTestCase {
             assertTrue(mojo.layers.get(0).equals("jaxrs"));
             mojo.recordState = true;
             mojo.execute();
-            String[] layers = {"jaxrs", "microprofile-health", "core-tools"};
+            // should be microprofile-health but we can't yet with EAP.
+            String[] layers = {"jaxrs", "observability", "core-tools"};
             checkJar(dir, true, true, layers, null);
             checkDeployment(dir, true);
         } finally {

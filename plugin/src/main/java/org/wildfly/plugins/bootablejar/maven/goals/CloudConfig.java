@@ -78,7 +78,9 @@ public class CloudConfig {
 
     Set<String> getExtraLayers(AbstractBuildBootableJarMojo mojo) {
         Set<String> set = new HashSet<>();
-        set.add("microprofile-health");
+        // Can't add yet due to EAP.
+        //set.add("microprofile-health");
+        set.add("observability");
         set.add("core-tools");
 //      // Should be already added by health, anyway, enforce it.
 //      set.add("microprofile-config");

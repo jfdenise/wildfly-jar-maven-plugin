@@ -720,7 +720,6 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
                             break;
                         }
                     }
-                    System.out.println("FPID " + fprt.getFPID());
                     break;
                 }
             }
@@ -809,7 +808,7 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
                             "provided", JAR, null,
                             new DefaultArtifactHandler(JAR)));
     }
-    
+
     private Path resolveArtifact(Artifact artifact) throws UnsupportedEncodingException,
             PlexusConfigurationException, MojoExecutionException {
         final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
@@ -824,11 +823,6 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
             throw new MojoExecutionException("Can't resolve boot artifact "
                     + artifact + " no support for bootable jar packaging", ex);
         }
-    }
-
-    private Path resolveBoot(String version) throws UnsupportedEncodingException,
-            PlexusConfigurationException, MojoExecutionException {
-        return resolveArtifact("org.wildfly.core", "wildfly-jar-boot", version);
     }
 
     private void attachJar(Path jarFile) {
