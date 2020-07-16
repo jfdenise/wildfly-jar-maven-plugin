@@ -40,10 +40,12 @@
                     <layers>
                         <layer>jaxrs</layer>
                         <layer>management</layer>
+                        <layer>logging</layer>
                     </layers>
                     <excluded-layers>
                         <layer>deployment-scanner</layer>
                     </excluded-layers>
+                    <cloud></cloud>
                 </configuration>
                 <executions>
                     <execution>
