@@ -24,6 +24,16 @@
     <build>
         <finalName>${project.artifactId}</finalName>
         <plugins>
+            <!-- required for the fat jar to be detected -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>NONE</phase>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
@@ -44,6 +54,36 @@
                         </goals>
                     </execution>
                 </executions>
+                <cloud/>
+            </plugin>
+            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-maven-plugin</artifactId>
+                <version>4.4.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>resource</goal>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <enricher>
+                        <config>
+                            <fmp-service>
+                                <type>NodePort</type>
+                            </fmp-service>
+                        </config>
+                    </enricher>
+                    <resources>
+                        <env>
+                            <AB_PROMETHEUS_OFF>true</AB_PROMETHEUS_OFF>
+                            <AB_JOLOKIA_OFF>true</AB_JOLOKIA_OFF>
+                            <JAVA_OPTIONS>-Djava.net.preferIPv4Stack=true</JAVA_OPTIONS>
+                        </env>
+                    </resources>
+                </configuration>
             </plugin>
         </plugins>
     </build>
