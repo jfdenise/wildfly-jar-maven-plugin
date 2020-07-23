@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+
+<installation xmlns="urn:jboss:galleon:provisioning:3.0">
+    <feature-pack location="org.wildfly:wildfly-galleon-pack:20.0.0.Final">
+        <default-configs inherit="false">
+            <include model="standalone" name="standalone.xml"/>
+        </default-configs>
+        <packages inherit="true">
+        </packages>
+    </feature-pack>
+</installation>
