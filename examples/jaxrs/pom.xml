@@ -28,14 +28,15 @@
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
                 <configuration>
-                    <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</feature-pack-location>
-                    <layers>
+                    <feature-pack-location>org.jboss.eap:wildfly-ee-galleon-pack:7.4.0.CD20-redhat-00001</feature-pack-location>
+                    <recordState>true</recordState>
+                   <!-- <layers>
                         <layer>jaxrs</layer>
                         <layer>management</layer>
                     </layers>
                     <excluded-layers>
                         <layer>deployment-scanner</layer>
-                    </excluded-layers>
+                    </excluded-layers>-->
                 </configuration>
                 <executions>
                     <execution>

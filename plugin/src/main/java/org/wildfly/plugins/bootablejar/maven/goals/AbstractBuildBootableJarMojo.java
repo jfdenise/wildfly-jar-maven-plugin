@@ -77,6 +77,7 @@ import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.runtime.FeaturePackRuntime;
 import org.jboss.galleon.runtime.ProvisioningRuntime;
 import org.jboss.galleon.universe.FeaturePackLocation;
+import org.jboss.galleon.universe.FeaturePackLocation.FPID;
 import org.jboss.galleon.universe.maven.MavenArtifact;
 import org.jboss.galleon.universe.maven.MavenUniverseException;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
@@ -619,7 +620,8 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
                             fpConfig.excludePackage(excludedPackage);
                         }
                     }
-
+                    FPID patch = FeaturePackLocation.fromString("org.jboss.eap:wildfly-ee-galleon-pack:7.4.0.CD20-patch-redhat-00001").getFPID();
+                    fpConfig.addPatch(patch);
                     state.addFeaturePackDep(fpConfig.build());
                 }
             }
@@ -655,9 +657,11 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
                 }
                 if (state == null) {
                     state = ProvisioningConfig.builder();
+                    FPID patch = FeaturePackLocation.fromString("org.jboss.eap:wildfly-ee-galleon-pack:7.4.0.CD20-patch-redhat-00001").getFPID();
                     FeaturePackConfig dependency = FeaturePackConfig.
                             builder(FeaturePackLocation.fromString(featurePackLocation)).
-                            setInheritPackages(false).setInheritConfigs(false).build();
+                            setInheritPackages(false).setInheritConfigs(false).
+                            addPatch(patch).build();
                     state.addFeaturePackDep(dependency);
                 }
 
@@ -680,13 +684,16 @@ class AbstractBuildBootableJarMojo extends AbstractMojo {
                             configBuilder.includeLayer(layer);
                         }
                     }
+                    FPID patch = FeaturePackLocation.fromString("org.jboss.eap:wildfly-ee-galleon-pack:7.4.0.CD20-patch-redhat-00001").getFPID();
+                    FPID patch2 = FeaturePackLocation.fromString("org.wildfly.core:wildfly-core-galleon-pack:12.0.2.Final-patch-redhat-00001").getFPID();
                     FeaturePackConfig dependency = FeaturePackConfig.
                             builder(FeaturePackLocation.fromString(featurePackLocation)).
-                            setInheritPackages(false).setInheritConfigs(false).includeDefaultConfig("standalone", "standalone-microprofile.xml").build();
+                            setInheritPackages(true).setInheritConfigs(false).includeDefaultConfig("standalone", "standalone.xml").
+                            addPatch(patch2).addPatch(patch).build();
                     ProvisioningConfig.Builder provBuilder = ProvisioningConfig.builder().addFeaturePackDep(dependency).addOptions(pluginOptions);
                     // Create a config to merge options to name the config standalone.xml
                     if (configBuilder == null) {
-                        configBuilder = ConfigModel.builder("standalone", "standalone-microprofile.xml");
+                        configBuilder = ConfigModel.builder("standalone", "standalone.xml");
                     }
                     configBuilder.setProperty("--server-config", "standalone.xml");
                     provBuilder.addConfig(configBuilder.build());
