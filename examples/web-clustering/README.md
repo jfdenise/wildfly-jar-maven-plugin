@@ -9,8 +9,8 @@
 * Access the application running in the second instance: http://127.0.0.1:8090
 * SessionID and user creation time should be the same as you previously noted.
 
-Openshift binary build and deployment
-=====================================
+Openshift binary build and deployment (Kubernetes Ping)
+=======================================================
 
 Steps:
 * mvn package -Popenshift
@@ -23,7 +23,25 @@ Steps:
  * JGROUPS_CLUSTER_PASSWORD env variable is expected by the server in order to establish authenticated communication between servers. 
 * oc expose svc/web-clustering
 * Access the application route, note the user created time and session ID.
-* Scale the application to 2 pods: oc scale --replicas=2 dc web-clustering
+* Scale the application to 2 pods: oc scale --replicas=2 deployment web-clustering
+* List pods: oc get pods
+* Kill the oldest POD (that answered the first application request): oc delete pod web-clustering-1-r4cx8 -n myproject
+* Access the application again, you will notice that the displayed values are the same, web session has been shared between the 2 pods.
+
+Openshift binary build and deployment (DNS Ping)
+================================================
+Steps:
+* mvn package -Popenshift-dns-ping
+* mkdir os && cp target/web-clustering-bootable.jar os/
+* oc new-build --strategy source --binary --image-stream openjdk11 --name web-clustering
+* oc start-build web-clustering --from-dir ./os/
+* oc create -f ping/web-clustering-ping.yml
+* oc new-app web-clustering -e OPENSHIFT_DNS_PING_SERVICE_NAME=web-clustering-ping -e JGROUPS_CLUSTER_PASSWORD=mypassword
+ * OPENSHIFT_DNS_PING_SERVICE_NAME env variable must be set to the ping service name (that listens on port 8888).
+ * JGROUPS_CLUSTER_PASSWORD env variable is expected by the server in order to establish authenticated communication between servers. 
+* oc expose svc/web-clustering
+* Access the application route, note the user created time and session ID.
+* Scale the application to 2 pods: oc scale --replicas=2 deployment web-clustering
 * List pods: oc get pods
 * Kill the oldest POD (that answered the first application request): oc delete pod web-clustering-1-r4cx8 -n myproject
 * Access the application again, you will notice that the displayed values are the same, web session has been shared between the 2 pods.
