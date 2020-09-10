@@ -34,7 +34,7 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
       - name: Build and Test on ${{ matrix.java }}
-        run: mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true'
+        run: mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' -Dskip.perf.tests=false
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
