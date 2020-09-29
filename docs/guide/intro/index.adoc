@@ -1,3 +1,4 @@
+[[wildfly_jar_introduction]]
 ## Introduction
 
 The WildFly JAR Maven plugin is aimed to build a bootable JAR for WildFly (starting version 20.0.0.Final). 
@@ -29,6 +30,7 @@ Some limitations exist:
 NB: When started, the bootable JAR installs a WildFly server in the _TEMP_ directory. 
 The bootable JAR displayed traces contain the actual path to this transient installation. This installation is deleted when the bootable JAR process exits.
 
+[[wildfly_jar_examples]]
 ## Examples
 
 The examples https://github.com/wildfly-extras/wildfly-jar-maven-plugin/tree/master/examples[directory] 
@@ -44,6 +46,7 @@ https://github.com/wildfly-extras/wildfly-jar-maven-plugin/tree/master/examples/
 Deployment inside a https://github.com/GoogleContainerTools/jib[JIB] container is 
 covered by https://github.com/wildfly-extras/wildfly-jar-maven-plugin/tree/master/examples/jib[jib] example and _examples/jib-*_ projects.
 
+[[wildfly_jar_composing_custom_server_galleon]]
 ## Composing custom server with Galleon layers
 
 When building a bootable JAR you have the ability to select the set of https://docs.wildfly.org/20/Admin_Guide.html#defined-galleon-layers[WildFly server Galleon layers] 
@@ -55,10 +58,12 @@ WildFly (eg: https://github.com/wildfly-extras/wildfly-datasources-galleon-pack[
 The example https://github.com/wildfly-extras/wildfly-jar-maven-plugin/tree/master/examples/postgresql[postgresql] 
 shows how to create a _cloud-server_ with support for _postgresql_ database.
 
+[[wildfly_jar_composing_custom_server_galleon_version]]
 ### Specifying the WildFly server version to use
 
 You need to provide a reference to the WildFly Galleon producer that contains the layers you want to use. This can be done in 3 ways.
 
+[[wildfly_jar_composing_custom_server_galleon_fpl]]
 #### Providing WildFly Galleon feature-pack location
 
 That is the simplest way to reference a WildFly server. 
@@ -66,10 +71,10 @@ The configuration element link:#featurePackLocation[feature-pack-location] conta
 
 Some examples:
 
-* To provision a WildFly 20 server: 
+* To provision a WildFly 21 server: 
 
 ```
-<feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#20.0.0.Final</feature-pack-location>
+<feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#21.0.0.Final</feature-pack-location>
 ```
 
 * To provision the latest WildFly server: 
@@ -78,15 +83,16 @@ Some examples:
 <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)</feature-pack-location>
 ```
 
+[[wildfly_jar_composing_custom_server_galleon_feature_packs]]
 #### Providing a list of Galleon feature-packs
 
 In some cases you will want to combine Galleon layers from multiple sources. In this case you will use the link:#featurePacks[feature-packs] configuration element that contains a list 
-of feature-packs. For example, to provision Galleon layers from WildFly 20 and WildFly extras datasources you would provide:
+of feature-packs. For example, to provision Galleon layers from WildFly 21 and WildFly extras datasources you would provide:
 
 ```
 <feature-packs>
     <feature-pack>
-        <location>wildfly@maven(org.jboss.universe:community-universe)#20.0.0.Final</location>
+        <location>wildfly@maven(org.jboss.universe:community-universe)#21.0.0.Final</location>
     </feature-pack>
     <feature-pack>
         <groupId>org.wildfly</groupId>
@@ -98,14 +104,14 @@ of feature-packs. For example, to provision Galleon layers from WildFly 20 and W
 
 NB: The list of feature-packs can't be used in conjunction with link:#featurePackLocation[feature-pack-location] element.
 
-
+[[wildfly_jar_composing_custom_server_galleon_provisioning_xml]]
 #### Providing a Galleon provisioning.xml file
 
 For advanced use cases you can fully control the Galleon provisioning by defining the file _galleon/provisioning.xml_. 
 _galleon_ directory must be located in the root directory of your Maven project. A custom file location can be set 
 thanks to the _provisioning-file_ plugin option. 
 
-
+[[wildfly_jar_composing_custom_server_galleon_layers]]
 ### Specifying the set of Galleon layers to use
 
 If no Galleon layers are provided, a microprofile standalone server (with a configuration identical to the 
@@ -120,7 +126,7 @@ For example, to provision a server containing jaxrs and management support:
     <layer>management</layer>
 </layers>
 ```
-
+[[wildfly_jar_composing_custom_server_galleon_exclude_layers]]
 ### Excluding Galleon layers
 
 In order to exclude layers that are not strictly required, use the link:#excludedLayers[excluded-layers] configuration element.
@@ -133,12 +139,12 @@ it can be excluded:
     <layer>deployment-scanner</layer>
 </excluded-layers>
 ``` 
-
+[[wildfly_jar_url_context]]
 ## URL context path of deployed application
 
 By default, a WAR deployed inside a bootable JAR is located in the root context ('/'). This can be changed to the WAR file name by using the link:#contextRoot[context-root] configuration element.
 
-
+[[wildfly_jar_hollow_jar]]
 ## Hollow bootable JAR
 
 If your use-case requires it, you can create a bootable JAR that doesn't contain a deployment. It can be handy to re-use a bootable JAR artifact with various deployments.
@@ -154,6 +160,7 @@ When starting an hollow JAR you can provide the path to a deployment you want to
 
 NB: In order to have your deployment be located in the root context, name the WAR file _ROOT.war_.
 
+[[wildfly_jar_configuring_build]]
 ## Configuring the server during packaging
 
 In addition to Galleon layers that you can use to configure the server, you can fine tune the server during packaging.
@@ -172,6 +179,7 @@ IMPORTANT: Using a log4j appender as a `custom-handler` in the logging subsystem
 
 You can workaround this by supplying your own `logging.properties` and defining the path in the `boot-logging-config` configuration property.
 
+[[wildfly_jar_configuring_build_cli]]
 ### WildFly CLI execution during packaging
 
 Part of WildFly CLI command line tool has been integrated in the Maven plugin. The plugin supports execution of CLI script files with a limited set of CLI configuration items.
@@ -216,7 +224,7 @@ CLI configuration example:
   </cli-session>
 </cli-sessions>
 ```
-
+[[wildfly_jar_configuring_cloud]]
 ## Configuring the server for cloud execution
 
 The configuration item ```<cloud></cloud>``` allows to build a bootable JAR for cloud environment. By default the server is configured to run inside an OpenShift context.
@@ -259,21 +267,21 @@ Configure for kubernetes execution:
   <type>kubernetes</type>
 </cloud>
 ```
-
+[[wildfly_jar_cloud_jkube]]
 ### OpenShift Deployment using Eclipse JKube
 
 https://github.com/eclipse/jkube[JKube Maven plugin] contains support for WildFly bootable JAR. The 
 https://github.com/wildfly-extras/wildfly-jar-maven-plugin/tree/master/examples/jkube[jkube] example shows how to combine
 WildFly bootable JAR and JKube Maven plugins in order to deploy an application on OpenShift. 
 
-
+[[wildfly_jar_cloud_operator]]
 ### WildFly OpenShift Operator
 
 The WildFly OpenShift Operator can be used to manage deployments based on image containing a WildFly bootable JAR.
 At boot time, the WildFly bootable JAR dumps in the file ```/opt/jboss/container/wildfly-bootable-jar/install-dir``` its installation path.
 This information is required by the WildFly OpenShift Operator to retrieve transaction logs and call into WildFly CLI.
 
-
+[[wildfly_jar_configuring_runtime]]
 ## Configuring the server at runtime
 
 The server can be configured using WildFly management tooling (WildFly CLI, HAL web console, ...).
@@ -282,6 +290,7 @@ In an OpenShift context, the WildFly CLI tool can be retrieved in the bootable J
 
 NB: Configuration changes are not persisted. Once the server is killed, management updates are lost.
 
+[[wildfly_jar_other_goals]]
 ## Other Maven plugin goals
 
 In addition the main link:#_package[package] goal used to build a bootable JAR, the following goals are available:
@@ -293,6 +302,7 @@ In addition the main link:#_package[package] goal used to build a bootable JAR, 
 
 Check the link:#_maven_plugin[Maven plugin documentation] for an exhaustive list of configuration elements usable with each goal.
 
+[[wildfly_jar_dev_mode]]
 ## Development mode (dev mode)
 
 When packaging a bootable JAR, a WildFly server is provisioned and customization (if any) is applied. Rebuilding a bootable JAR each time is time consuming
@@ -316,8 +326,10 @@ The running server detects the application and deploys it.
 NB: Although the _dev_ mode relies on the deployment scanner, you can safely exclude it from the set of layers. 
 The Maven plugin forces its presence when the server is started in _dev_ mode.
 
+[[wildfly_jar_advanced]]
 ## Advanced usages
 
+[[wildfly_jar_advanced_slim]]
 ### Provisioning a slim bootable JAR
 
 A _slim bootable JAR_ is a JAR that doesn't contain JBoss modules JAR files. The JBoss modules JAR files are retrieved from the local Maven repository.
@@ -340,6 +352,7 @@ This can be overridden by using the _-Dmaven.repo.local=<path to repository>_ wh
 java -Dmaven.repo.local=/opt/maven/maven-repo -jar jaxrs-bootable.jar
 ```
 
+[[wildfly_jar_advanced_slim_repo_gen]]
 #### Generating a Maven local repository during packaging
 
 The Maven plugin can generate a Maven repository directory containing all the JBoss modules artifacts required by the slim bootable JAR. The generated Maven repository allows to 
