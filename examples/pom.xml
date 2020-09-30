@@ -10,9 +10,9 @@
     <name>WildFly Bootable JAR - Examples</name>
 
     <properties>
-        <version.bootable.jar>2.0.0.Beta9-SNAPSHOT</version.bootable.jar>
+        <version.bootable.jar>2.0.0.Beta8</version.bootable.jar>
         <version.wildfly>21.0.0.Beta1</version.wildfly>
-        <version.jkube>1.0.0-rc-1</version.jkube>
+        <version.jkube>1.0.1-SNAPSHOT</version.jkube>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
