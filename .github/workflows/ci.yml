@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest ]
-        java: ['1.8', '11']
+        os: [windows-latest ]
+        java: ['11']
 
     steps:
       - uses: actions/checkout@v2
@@ -36,14 +36,15 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java }}
+        
       - name: Initialise Bootable JAR WildFly version
         # Needed to download everything from Maven to not pollute the output in the next steps
         run: |
-          mvn -B help:evaluate -Dexpression=version.wildfly -pl :wildfly-jar-parent
+          mvn -B help:evaluate '-Dexpression=version.wildfly' -pl :wildfly-jar-parent
         working-directory: main
       - name: Initialise BOOTABLE_JAR_WILDFLY_VERSION
         run: |
-          TMP="$(mvn help:evaluate -Dexpression=version.wildfly -pl :wildfly-jar-parent | grep -v '^\[')"
+          TMP="$(mvn help:evaluate '-Dexpression=version.wildfly' -pl :wildfly-jar-parent | grep -v '^\[')"
           echo "::set-env name=BOOTABLE_JAR_WILDFLY_VERSION::${TMP}"
         working-directory: main
       - name: Checkout wildfly master
