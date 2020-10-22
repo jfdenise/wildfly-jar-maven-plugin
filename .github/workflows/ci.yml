@@ -35,9 +35,12 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Build on ${{ matrix.java }}
         run: mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' -DskipTests
-      - name: Test on ${{ matrix.java }}
-        run: mvn test '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DevWatchContextTestCase'
-        working-directory: plugin
+      #- name: Test on ${{ matrix.java }}
+      #  run: mvn test '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DevWatchContextTestCase'
+      #  working-directory: plugin
+      - name: Integration test on ${{ matrix.java }}
+        run: mvn test '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DevWatch*TestCase' '-Dorg.wildfly.bootable.jar.ci.execution=true'
+        working-directory: tests
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -48,6 +51,11 @@ jobs:
         with:
           name: server-logs-${{ matrix.os }}-${{ matrix.java }}
           path: '**/server.log'
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: devwatch-logs-${{ matrix.os }}-${{ matrix.java }}
+          path: '**/dev-watch-test-output.txt'
       - uses: actions/upload-artifact@v2
         if: failure()
         with:

@@ -344,6 +344,47 @@ Check the link:#_maven_plugin[Maven plugin documentation] for an exhaustive list
 
 When packaging a bootable JAR, a WildFly server is provisioned and customization (if any) is applied. Rebuilding a bootable JAR each time is time consuming
 and slows down the application development process.
+
+We offer 2 different dev goals:
+
+### Development mode with source watching
+
+In order to speed-up the development of your application, the Maven plugin offers a link:#_dev_watch[dev-watch] goal that builds and starts the bootable JAR only once then 
+watch for changes in order to re-build and re-deploy your application.
+
+The workflow to follow during development is:
+
+* _mvn wildfly-jar:dev-watch_
+** The plugin builds your application, build an hollow server bootable JAR and starts it, then monitors the projects to detect source files changes and re-build/re-deploy the
+application. NB: In case the pom.xml file is updated, a rebuild of the bootable JAR is operated.
+* When done, type Ctrl-C in the console to stop the process.
+
+Watch details:
+* The goal ` dev-watch` is blocking, tha tis required in order to watch for the current project.
+* WAR and JAR packaging are supported.
+* The project build sources (default to src/main/java) is watched, any change implies a re-compile followed by a re-packaging and re-deploy.
+* The src/main/webapp is watched, any changes implies a war:exploded re-packaging and re-deploy.
+* The default resources src/main/resources as well as configured resources in pom.xml are watched, any change implies a resources goal followed by a re-packaging and re-deploy.
+* Any change to the pom.xml file implies a full rebuild, re-compile and re-start of the server.
+* changes made in pom.xml (layers updates, jvmArguments/arguments, ...) are taken into account when rebuilding the JAR.
+
+Bootable JAR specific files watch:
+
+* CLI scripts, CLI properties files are watched, any change implies a re-start of the server and re-deploy.
+* Extra content directories are watched, any change implies a re-start of the server and re-deploy.
+
+Error handling:
+
+* Compilation errors are advertised in the console. You can fix , re-compile will occur.
+* Re-build of bootable JAR errors are advertised in the console. You can fix, re-compile will occur.
+
+Limitations:
+
+* No support (yet?) for multi modules.
+* No support for resources filtering (include/exclude). The resources directory is watched fully, this means that some re-deploy would be fire for not actual resources.
+
+### Development mode with repackaging
+
 In order to speed-up the development of your application, the Maven plugin offers a link:#_dev[dev] goal that builds and starts the bootable JAR only once.
 
 The workflow to follow during development is:
@@ -360,7 +401,7 @@ The running server detects the application and deploys it.
 * When done, kill the server: _mvn wildfly-jar:shutdown_
 * When you are done with your application, create the final packaging by calling: _mvn package_
 
-NB: Although the _dev_ mode relies on the deployment scanner, you can safely exclude it from the set of layers. 
+NB: Although the _dev_ and _dev-watch_ goals rely on the deployment scanner, you can safely exclude it from the set of layers. 
 The Maven plugin forces its presence when the server is started in _dev_ mode.
 
 [[wildfly_jar_enabling_debug]]
