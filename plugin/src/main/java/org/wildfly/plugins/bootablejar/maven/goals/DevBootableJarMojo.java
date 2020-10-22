@@ -16,18 +16,13 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.wildfly.core.launcher.BootableJarCommandBuilder;
 import org.wildfly.core.launcher.Launcher;
 import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
@@ -39,68 +34,19 @@ import org.wildfly.plugins.bootablejar.maven.common.Utils;
  * @author jfdenise
  */
 @Mojo(name = "dev", requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.COMPILE)
-public final class DevBootableJarMojo extends AbstractBuildBootableJarMojo {
-    private static final String DEPLOYMENT_SCANNER_LAYER = "deployment-scanner";
-
-    public static final String DEPLOYMENT_SCANNER_NAME = "wildfly-jar-for-dev-mode";
-
-    /**
-     * Additional JVM options.
-     */
-    @Parameter(alias = "jvmArguments")
-    public List<String> jvmArguments = new ArrayList<>();
-
-    /**
-     * Bootable JAR server arguments.
-     */
-    @Parameter(alias = "arguments")
-    public List<String> arguments = new ArrayList<>();
+public final class DevBootableJarMojo extends AbstractDevBootableJarMojo {
 
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
-        if (skip) {
-            getLog().debug(String.format("Skipping run of %s:%s", project.getGroupId(), project.getArtifactId()));
-            return;
-        }
-        if (Files.exists(getProvisioningFile()) && !hasLayers()) {
-            getLog().warn("Dev mode, can't enforce provisioning of " + DEPLOYMENT_SCANNER_LAYER
-                    + ". Make sure your provisioned configuration contains deployment-scanner subsystem for dev mode to properly operate.");
-        } else {
-            if (getExcludedLayers().contains(DEPLOYMENT_SCANNER_LAYER)) {
-                getLog().warn("Dev mode, removing layer " + DEPLOYMENT_SCANNER_LAYER + " from the list of excluded layers to ensure dev mode can be operated");
-                getExcludedLayers().remove(DEPLOYMENT_SCANNER_LAYER);
-            }
-            getLog().info("Dev mode, adding layer " + DEPLOYMENT_SCANNER_LAYER + " to ensure dev mode can be operated");
-            addExtraLayer(DEPLOYMENT_SCANNER_LAYER);
-        }
-        hollowJar = true;
-        super.execute();
-
-        final BootableJarCommandBuilder commandBuilder = BootableJarCommandBuilder.of(Utils.getBootableJarPath(null, project, "dev"))
-                // Always disable color when printing to file.
-                .addJavaOption("-Dorg.jboss.logmanager.nocolor=true")
-                .addJavaOptions(jvmArguments)
-                .addServerArguments(arguments);
+    protected void doExecute() throws MojoExecutionException, MojoFailureException {
         try {
             final Path stdout = Utils.createTemporaryFile(project, "wildfly-jar-dev-stdout.log");
             getLog().info(String.format("The stdout and stderr for the process are being logged to %s", stdout));
-            Launcher.of(commandBuilder)
+            Launcher.of(buildCommandBuilder())
                     .setRedirectErrorStream(true)
                     .redirectOutput(stdout)
                     .launch();
         } catch (Exception e) {
             throw new MojoExecutionException(e.getLocalizedMessage(), e);
         }
-    }
-
-    @Override
-    protected void configureCli(List<String> commands) {
-        configureScanner(getDeploymentsDir(), commands);
-    }
-
-    private void configureScanner(Path deployments, List<String> commands) {
-        String deploymentPath = deployments.toString().replace("\\", "\\\\");
-        commands.add("/subsystem=deployment-scanner/scanner=" + DEPLOYMENT_SCANNER_NAME + ":add(scan-interval=1000,auto-deploy-exploded=false,"
-                + "path=\"" + deploymentPath + "\")");
     }
 }
