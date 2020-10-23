@@ -30,6 +30,7 @@ import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -48,12 +49,18 @@ class DevWatchContext {
     private final Path javaDir;
     private final Path webAppDir;
     private final Set<Path> resourceDirectories = new HashSet<>();
+    private final Set<Path> extraDirectories = new HashSet<>();
+    private final Set<Path> cliFiles = new HashSet<>();
     private final Path pom;
     private final WatchService watcher;
     private final Path projectBuildDir;
     private final Log log;
 
-    DevWatchContext(MavenProject project, Path javaDir, Path projectBuildDir, WatchService watcher, Log log) throws IOException {
+    DevWatchContext(MavenProject project, Path javaDir, Path projectBuildDir,
+            WatchService watcher,
+            List<CliSession> cliSessions,
+            List<String> extraServerContent,
+            Log log) throws IOException {
         this.project = project;
         this.watcher = watcher;
         this.projectBuildDir = projectBuildDir;
@@ -82,10 +89,41 @@ class DevWatchContext {
                 registerDir(p);
             }
         }
+
+        for (String extra : extraServerContent) {
+            Path p = Paths.get(extra);
+            if (!p.isAbsolute()) {
+                p = project.getBasedir().toPath().resolve(p);
+            }
+            extraDirectories.add(p);
+            log.debug("[WATCH] extra-content dir: " + p);
+            registerDir(p);
+        }
+
+        for (CliSession session : cliSessions) {
+            for (String f : session.getScriptFiles()) {
+                Path p = Paths.get(f);
+                if (!p.isAbsolute()) {
+                    p = project.getBasedir().toPath().resolve(p);
+                }
+                cliFiles.add(p);
+                log.debug("[WATCH] CLI script File: " + p);
+                watchedDirectories.put(p.getParent().register(watcher, ENTRY_MODIFY), p.getParent());
+            }
+            if (session.getPropertiesFile() != null) {
+                Path p = Paths.get(session.getPropertiesFile());
+                if (!p.isAbsolute()) {
+                    p = project.getBasedir().toPath().resolve(p);
+                }
+                cliFiles.add(p);
+                log.debug("[WATCH] CLI properties File: " + p);
+                watchedDirectories.put(p.getParent().register(watcher, ENTRY_MODIFY), p.getParent());
+            }
+        }
     }
 
     boolean requiresFullRebuild(Path absolutePath) {
-        return pom.equals(absolutePath);
+        return pom.equals(absolutePath) || isBootableSpecificFile(absolutePath);
     }
 
     boolean requiresClean(Path absolutePath) {
@@ -138,13 +176,32 @@ class DevWatchContext {
         return false;
     }
 
+    final boolean isBootableSpecificFile(Path p) {
+        if (cliFiles.contains(p)) {
+            return true;
+        }
+        for (Path path : extraDirectories) {
+            if (p.startsWith(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     final void registerDir(Path dir) throws IOException {
+        registerDir(dir, null);
+    }
+
+    final void registerDir(Path dir, Set<Path> set) throws IOException {
         Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 if (!projectBuildDir.equals(dir)) {
                     watchedDirectories.put(dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY), dir);
                     log.debug("[WATCH] watching " + dir);
+                    if (set != null) {
+                        set.add(dir);
+                    }
                     return FileVisitResult.CONTINUE;
                 } else {
                     return FileVisitResult.SKIP_SUBTREE;

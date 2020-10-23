@@ -359,6 +359,30 @@ The workflow to follow during development is:
 application. NB: In case the pom.xml file is updated, a rebuild of the bootable JAR is operated.
 * When done, type Ctrl-C in the console to stop the process.
 
+Watch details:
+* The goal ` dev-watch` is blocking, tha tis required in order to watch for the current project.
+* WAR and JAR packaging are supported.
+* The project build sources (default to src/main/java) is watched, any change implies a re-compile followed by a re-packaging and re-deploy.
+* The src/main/webapp is watched, any changes implies a war:exploded re-packaging and re-deploy.
+* The default resources src/main/resources as well as configured resources in pom.xml are watched, any change implies a resources goal followed by a re-packaging and re-deploy.
+* Any change to the pom.xml file implies a full rebuild, re-compile and re-start of the server.
+* changes made in pom.xml (layers updates, jvmArguments/arguments, ...) are taken into account when rebuilding the JAR.
+
+Bootable JAR specific files watch:
+
+* CLI scripts, CLI properties files are watched, any change implies a re-start of the server and re-deploy.
+* Extra content directories are watched, any change implies a re-start of the server and re-deploy.
+
+Error handling:
+
+* Compilation errors are advertised in the console. You can fix , re-compile will occur.
+* Re-build of bootable JAR errors are advertised in the console. You can fix, re-compile will occur.
+
+Limitations:
+
+* No support (yet?) for multi modules.
+* No support for resources filtering (include/exclude). The resources directory is watched fully, this means that some re-deploy would be fire for not actual resources.
+
 ### Development mode with repackaging
 
 In order to speed-up the development of your application, the Maven plugin offers a link:#_dev[dev] goal that builds and starts the bootable JAR only once.

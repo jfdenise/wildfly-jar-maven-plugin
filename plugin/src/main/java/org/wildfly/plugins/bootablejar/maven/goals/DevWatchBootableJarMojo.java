@@ -30,6 +30,7 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -155,7 +156,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
     private void watch() throws IOException, MojoExecutionException, InterruptedException, MojoFailureException, ProjectBuildingException {
         WatchService watcher = FileSystems.getDefault().newWatchService();
-        DevWatchContext ctx = new DevWatchContext(project, sourceDir.toPath(), Paths.get(projectBuildDir), watcher, getLog());
+        DevWatchContext ctx = new DevWatchContext(project, sourceDir.toPath(), Paths.get(projectBuildDir), watcher,
+                cliSessions, extraServerContentDirs, getLog());
         for (;;) {
             WatchKey key = watcher.take();
             boolean needCompile = false;
@@ -204,7 +206,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             try {
                 if (needFullRebuild) {
                     // Must rebuild the bootable JAR.
-                    getLog().info("[WATCH] pom.xml file modified, stopping running bootable JAR");
+                    getLog().info("[WATCH] stopping running bootable JAR");
                     process.destroy();
                     process.waitFor();
                     getLog().info("[WATCH] server stopped, rebuilding JAR");
@@ -223,6 +225,9 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 }
             } catch (Exception ex) {
                 getLog().error("Error rebuilding: " + ex);
+                if (getLog().isDebugEnabled()) {
+                    ex.printStackTrace();
+                }
             }
             key.reset();
         }
@@ -328,6 +333,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         final Plugin jarPlugin = mavenProject.getPlugin(jarPluginKey);
         Path updatedSrcDir = sourceDir.toPath();
         Path updatedBuildDir = Paths.get(projectBuildDir);
+        List<String> updatedExtras = new ArrayList<>();
+        List<CliSession> updatedCliSessions = new ArrayList<>();
         if (jarPlugin != null) {
             Xpp3Dom config = getPluginConfig(jarPlugin);
             executeGoal(jarPlugin, "org.wildfly.plugins", "wildfly-jar-maven-plugin", "dev-watch", config);
@@ -364,9 +371,42 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 }
             }
 
+            Xpp3Dom extra = config.getChild("extra-server-content-dirs");
+            if (extra == null) {
+                config.getChild("extraServerContentDirs");
+            }
+            if (extra != null) {
+                for (Xpp3Dom child : extra.getChildren()) {
+                    updatedExtras.add(child.getValue());
+                }
+            }
+
+            Xpp3Dom cli = config.getChild("cli-sessions");
+            if (cli == null) {
+                config.getChild("cliSessions");
+            }
+            if (cli != null) {
+                for (Xpp3Dom child : cli.getChildren()) {
+                    CliSession session = new CliSession();
+                    Xpp3Dom props = child.getChild("properties-file");
+                    if (props != null) {
+                        session.setPropertiesFile(props.getValue());
+                    }
+                    Xpp3Dom scripts = child.getChild("script-files");
+                    if (scripts != null) {
+                        List<String> lst = new ArrayList<>();
+                        for (Xpp3Dom script : scripts.getChildren()) {
+                            lst.add(script.getValue());
+                        }
+                        session.setScriptFiles(lst);
+                    }
+                    updatedCliSessions.add(session);
+                }
+            }
         }
         ctx.cleanup();
-        return new DevWatchContext(mavenProject, updatedSrcDir, updatedBuildDir, watcher, getLog());
+        return new DevWatchContext(mavenProject, updatedSrcDir, updatedBuildDir,
+                watcher, updatedCliSessions, updatedExtras, getLog());
     }
 
     private void executeGoal(Plugin plugin, String groupId, String artifactId, String goal, Xpp3Dom config) throws MojoExecutionException {
