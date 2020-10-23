@@ -16,13 +16,12 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -31,12 +30,9 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Resource;
@@ -47,6 +43,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
@@ -102,6 +99,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             "deploy"));
     private static final String ORG_APACHE_MAVEN_PLUGINS = "org.apache.maven.plugins";
     private static final String MAVEN_COMPILER_PLUGIN = "maven-compiler-plugin";
+    private static final String MAVEN_COMPILER_GOAL = "compile";
     private static final String MAVEN_WAR_PLUGIN = "maven-war-plugin";
     private static final String MAVEN_EXPLODED_GOAL = "exploded";
     private static final String MAVEN_JAR_PLUGIN = "maven-jar-plugin";
@@ -115,6 +113,10 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
     @Component
     private ProjectBuilder projectBuilder;
+
+    @Parameter(defaultValue = "${project.build.sourceDirectory}")
+    private File sourceDir;
+
     private Process process;
     @Override
     protected void doExecute() throws MojoExecutionException, MojoFailureException {
@@ -151,30 +153,16 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         }
     }
 
-    private void registerDir(Path dir, WatchService watcher, Map<WatchKey, Path> paths) throws IOException {
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                paths.put(dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY), dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
     private void watch() throws IOException, MojoExecutionException, InterruptedException, MojoFailureException, ProjectBuildingException {
         WatchService watcher = FileSystems.getDefault().newWatchService();
-        Map<WatchKey, Path> paths = new HashMap<>();
-        Path srcDir = project.getBasedir().toPath().resolve("src");
-        Path javaDir = srcDir.resolve("main").resolve("java");
-        Path resourcesDir = srcDir.resolve("main").resolve("resources");
-        registerDir(project.getBasedir().toPath().resolve("src"), watcher, paths);
-        Path pom = project.getBasedir().toPath().resolve("pom.xml");
-        paths.put(project.getBasedir().toPath().register(watcher, ENTRY_MODIFY), project.getBasedir().toPath());
-
+        DevWatchContext ctx = new DevWatchContext(project, sourceDir.toPath(), Paths.get(projectBuildDir), watcher, getLog());
         for (;;) {
             WatchKey key = watcher.take();
             boolean needCompile = false;
             boolean needResources = false;
             boolean needClean = false;
+            boolean needRepackage = false;
+            boolean needFullRebuild = false;
             for (WatchEvent<?> event : key.pollEvents()) {
                 WatchEvent.Kind<?> kind = event.kind();
                 if (kind == OVERFLOW) {
@@ -182,53 +170,55 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 }
                 @SuppressWarnings("unchecked")
                 WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                Path file = ev.context();
-                Path p = paths.get(key);
-                Path absolutePath = p.resolve(file);
-                getLog().info("File change [" + ev.kind().name() + "]: " + absolutePath);
+                Path absolutePath = ctx.getPath(key, ev.context());
+                getLog().debug("[WATCH] file change [" + ev.kind().name() + "]: " + absolutePath);
                 if (kind == ENTRY_CREATE) {
                     if (Files.isDirectory(absolutePath)) {
-                        registerDir(absolutePath, watcher, paths);
+                        ctx.registerDir(absolutePath);
                     }
                     continue;
                 } else if (kind == ENTRY_MODIFY) {
-                    if (pom.equals(absolutePath)) {
-                        // Must rebuild the bootable JAR.
-                        getLog().info("pom.xml file modified, stopping running bootable JAR");
-                        process.destroy();
-                        process.waitFor();
-                        getLog().info("Server stopped");
-                        getLog().info("Rebuilding JAR");
-                        System.setProperty(REBUILD_MARKER, "true");
-                        triggerRebuildBootableJar();
-                        process = Launcher.of(buildCommandBuilder())
-                                .inherit()
-                                .launch();
-                        getLog().info("Server re-started");
-                        // We need a rebuild.
-                        needCompile = true;
+                    if (ctx.requiresFullRebuild(absolutePath)) {
+                        needFullRebuild = true;
                     }
                 } else if (kind == ENTRY_DELETE) {
                     // We must clean
-                    if (absolutePath.startsWith(javaDir) || absolutePath.startsWith(resourcesDir)) {
-                        System.out.println("NEED CLEAN");
+                    if (ctx.fileDeleted(absolutePath)) {
+                        getLog().debug("[WATCH] File deleted, need to clean.");
                         needClean = true;
                     }
+                    continue;
                 }
 
-                if (absolutePath.startsWith(javaDir)) {
-                    System.out.println("NEED RECOMPILE");
+                if (ctx.requiresCompile(absolutePath)) {
+                    getLog().debug("[WATCH] java dir updated, need to re-compile");
                     needCompile = true;
-                } else {
-                    if (absolutePath.startsWith(resourcesDir)) {
-                        System.out.println("NEED RESPOURCES");
-                        needResources = true;
-                    }
+                } else if (ctx.requiresResources(absolutePath)) {
+                    getLog().debug("[WATCH] resources dir updated, need to update resources");
+                    needResources = true;
+                } else if (ctx.requiresRePackage(absolutePath)) {
+                    getLog().debug("[WATCH] webapp dir updated, need to re-package");
+                    needRepackage = true;
                 }
             }
             try {
-                if (needCompile || needResources) {
-                    getLog().info("Updating application");
+                if (needFullRebuild) {
+                    // Must rebuild the bootable JAR.
+                    getLog().info("[WATCH] pom.xml file modified, stopping running bootable JAR");
+                    process.destroy();
+                    process.waitFor();
+                    getLog().info("[WATCH] server stopped, rebuilding JAR");
+                    System.setProperty(REBUILD_MARKER, "true");
+                    ctx = triggerRebuildBootableJar(watcher, ctx);
+                    process = Launcher.of(buildCommandBuilder())
+                            .inherit()
+                            .launch();
+                    getLog().info("[WATCH] server re-started");
+                    // We need a rebuild.
+                    needCompile = true;
+                }
+                if (needClean || needCompile || needResources || needRepackage) {
+                    getLog().info("[WATCH] updating application");
                     rebuild(false, needClean, needCompile, needResources);
                 }
             } catch (Exception ex) {
@@ -271,6 +261,10 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 Files.copy(artifactFile, deploymentsDir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
             }
         }
+        Path failedMarker = deploymentsDir.resolve(fileName + ".failed");
+        if (Files.exists(failedMarker)) {
+            Files.delete(failedMarker);
+        }
         Path marker = deploymentsDir.resolve(fileName + ".dodeploy");
         if (Files.notExists(marker)) {
             Files.createFile(marker);
@@ -303,7 +297,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         final String compilerPluginKey = ORG_APACHE_MAVEN_PLUGINS + ":" + MAVEN_COMPILER_PLUGIN;
         final Plugin compilerPlugin = project.getPlugin(compilerPluginKey);
         if (compilerPlugin != null) {
-            executeGoal(compilerPlugin, ORG_APACHE_MAVEN_PLUGINS, MAVEN_COMPILER_PLUGIN, "compile", getPluginConfig(compilerPlugin));
+            executeGoal(compilerPlugin, ORG_APACHE_MAVEN_PLUGINS, MAVEN_COMPILER_PLUGIN, MAVEN_COMPILER_GOAL, getPluginConfig(compilerPlugin));
         }
     }
 
@@ -327,14 +321,16 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         }
     }
 
-    private void triggerRebuildBootableJar() throws MojoExecutionException, ProjectBuildingException {
+    private DevWatchContext triggerRebuildBootableJar(WatchService watcher, DevWatchContext ctx) throws MojoExecutionException, ProjectBuildingException, IOException {
         ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
         MavenProject mavenProject = projectBuilder.build(project.getBasedir().toPath().resolve("pom.xml").toFile(), buildingRequest).getProject();
         final String jarPluginKey = "org.wildfly.plugins" + ":" + "wildfly-jar-maven-plugin";
         final Plugin jarPlugin = mavenProject.getPlugin(jarPluginKey);
+        Path updatedSrcDir = sourceDir.toPath();
+        Path updatedBuildDir = Paths.get(projectBuildDir);
         if (jarPlugin != null) {
             Xpp3Dom config = getPluginConfig(jarPlugin);
-            executeGoal(jarPlugin, "org.wildfly.plugins", "wildfly-jar-maven-plugin", "dev", config);
+            executeGoal(jarPlugin, "org.wildfly.plugins", "wildfly-jar-maven-plugin", "dev-watch", config);
 
             // Resync the jvmArguments and arguments that we are going to re-use when launching the server
             Xpp3Dom jvmArguments = config.getChild("jvmArguments");
@@ -353,7 +349,24 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     this.arguments.add(child.getValue());
                 }
             }
+            Xpp3Dom srcDir = config.getChild("sourceDir");
+            if (srcDir != null) {
+                // Is null for defaultValue.
+                if (srcDir.getValue() != null) {
+                    updatedSrcDir = Paths.get(srcDir.getValue());
+                }
+            }
+            Xpp3Dom projectBuildDir = config.getChild("projectBuildDir");
+            if (projectBuildDir != null) {
+                // Is null for defaultValue.
+                if (projectBuildDir.getValue() != null) {
+                    updatedSrcDir = Paths.get(projectBuildDir.getValue());
+                }
+            }
+
         }
+        ctx.cleanup();
+        return new DevWatchContext(mavenProject, updatedSrcDir, updatedBuildDir, watcher, getLog());
     }
 
     private void executeGoal(Plugin plugin, String groupId, String artifactId, String goal, Xpp3Dom config) throws MojoExecutionException {
@@ -385,8 +398,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
     private void cleanClasses() throws MojoExecutionException {
         Path buildDir = Paths.get(this.projectBuildDir);
-        Path classes = buildDir.resolve("classes");
-        IoUtils.recursiveDelete(classes);
+        IoUtils.recursiveDelete(Paths.get(this.project.getBuild().getOutputDirectory()));
         final String compilerPluginKey = ORG_APACHE_MAVEN_PLUGINS + ":" + MAVEN_COMPILER_PLUGIN;
         final Plugin compilerPlugin = project.getPlugin(compilerPluginKey);
         if (compilerPlugin != null) {
