@@ -172,6 +172,10 @@
                                     <value>${test.fpl}</value>
                                 </property>
                                 <property>
+                                    <name>test.plugin.version</name>
+                                    <value>${project.version}</value>
+                                </property>
+                                <property>
                                     <name>test.patch.version</name>
                                     <value>${test.patch.version}</value>
                                 </property>
