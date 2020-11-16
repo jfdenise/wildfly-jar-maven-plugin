@@ -44,9 +44,9 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         assertFalse(layerExists("jmx"));
         assertTrue(layerExists("ejb-lite"));
 
-        Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve(artifactName + ".jar");
-        assertTrue(Files.exists(targetDir));
-        assertTrue(Files.isDirectory(targetDir));
+//        Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve(artifactName + ".jar");
+//        assertTrue(Files.exists(targetDir));
+//        assertTrue(Files.isDirectory(targetDir));
 
         String currentName1 = "FOO";
         String currentName2 = "BABAR";
