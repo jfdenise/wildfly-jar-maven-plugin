@@ -57,7 +57,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         System.out.println("[" + expectedStaticContent + "]");
         assertEquals(expectedStaticContent, liveContent);
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         // Update Java file and check for change.
         Path javaFile = getTestDir().resolve("src").resolve("main").resolve("java").
                 resolve("org").resolve("wildfly").resolve("plugins").resolve("demo").resolve("jaxrs").resolve("HelloWorldEndpoint.java");
@@ -66,10 +66,10 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         str = str.replace(radical, patchedRadical);
         String patchedContent = patchedRadical + msg;
         Files.write(javaFile, str.getBytes());
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         assertTrue(pollBodyContent(url, patchedContent));
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         //Update webapp static file and check for change.
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
                 resolve("index.html");
@@ -78,10 +78,10 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         indexStr = indexStr.replace(expectedStaticContent, patchedStaticContent);
 
         Files.write(indexFile, indexStr.getBytes());
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         assertTrue(pollBodyContent(staticUrl, patchedStaticContent));
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         // Update resources file and check.
         Path resourcesFile = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("myresources.properties");
@@ -91,11 +91,11 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         try (FileOutputStream output = new FileOutputStream(resourcesFile.toFile())) {
             props.store(output, null);
         }
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         String expectedNewContent = patchedRadical + testMsg;
         assertTrue(pollBodyContent(url, expectedNewContent));
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         // Add a new directory dir
         Path p = getTestDir().resolve("myresources");
         Files.createDirectory(p);
@@ -125,7 +125,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         assertFalse(logFileContains(LOG_SERVER_RESTART));
         assertTrue(logFileContains(LOG_RESET_WATCHER));
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         // Add extra layers!
         String updatedLayers = "<layer>jmx</layer>";
         pomContent = new String(Files.readAllBytes(pomFile), "UTF-8");
