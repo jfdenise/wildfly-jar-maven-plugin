@@ -435,7 +435,12 @@ class DevWatchContext {
             ctx.info("No more watching key, ignoring change done to " + fileName);
             return null;
         } else {
-            return p.resolve(fileName);
+            Path resolved = p.resolve(fileName);
+            // Fully ignore target dir
+            if (projectBuildDir.equals(resolved)) {
+                return null;
+            }
+            return resolved;
         }
 
     }
