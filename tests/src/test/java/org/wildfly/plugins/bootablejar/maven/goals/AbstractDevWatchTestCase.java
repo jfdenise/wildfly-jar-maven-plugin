@@ -69,6 +69,8 @@ public class AbstractDevWatchTestCase extends AbstractBootableJarMojoTestCase {
             @Override
             public void run() {
                 try {
+                    // Wait, the project filesystem layout has just been created
+                    Thread.sleep(10000);
                     // We can't call into the plugin, when reloading itself (after a pom.xml change
                     // the clasloading context switch from AppClassloader to Maven RealmClass and all is reloaded without delegation
                     // breaking fully the loading env.
