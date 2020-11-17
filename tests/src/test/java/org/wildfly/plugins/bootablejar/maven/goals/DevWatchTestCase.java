@@ -40,10 +40,9 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         assertFalse(layerExists("jmx"));
         assertTrue(layerExists("jaxrs"));
 
-        // POC for Windows .
-        //Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve("ROOT.war");
-        //assertTrue(targetDir.toString(), Files.exists(targetDir));
-        //assertTrue(targetDir.toString(), Files.isDirectory(targetDir));
+        Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve("ROOT.war");
+        assertTrue(targetDir.toString(), Files.exists(targetDir));
+        assertTrue(targetDir.toString(), Files.isDirectory(targetDir));
 
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
