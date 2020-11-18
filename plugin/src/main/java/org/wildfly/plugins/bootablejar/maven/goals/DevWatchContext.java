@@ -255,11 +255,8 @@ class DevWatchContext {
                 if (fileExists && !isDirectory) {
                     Path relativePath = isWebFile(absolutePath);
                     if (relativePath != null) {
-                        if (relativePath.startsWith("WEB-INF")) {
-                            ctx.info("[WATCH] webapp/WEB-INF dir updated, need to re-deploy");
-                            redeploy = true;
-                        }
                         copyInDeployment(absolutePath, relativePath);
+                        redeploy = true;
                         handledLocally = true;
                     }
                 }

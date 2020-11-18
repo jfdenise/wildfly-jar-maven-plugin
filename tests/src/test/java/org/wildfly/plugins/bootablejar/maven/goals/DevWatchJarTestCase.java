@@ -67,8 +67,9 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         Files.write(javaFile, str.getBytes());
 
         waitForLogMessage(radical + currentName1, TestEnvironment.getTimeout());
-
-        //Thread.sleep(2000);
+        // wait for the previous deployment to terminate, we synchronize on the log
+        // Deployment could be not yet done.
+        Thread.sleep(2000);
         // Update resources file and check.
         Path ejbJarXml = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("META-INF").resolve("ejb-jar.xml");

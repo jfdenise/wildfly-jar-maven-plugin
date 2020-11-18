@@ -364,8 +364,7 @@ Watch details:
 * `war`, `jar` and `ejb` packaging are supported.
 * Applications are deployed as exploded deployments. 
 * Any change to the project build sources (default to `src/main/java`) implies a recompile, repackage and redeploy.
-* Any change to the `src/main/webapp` implies a copy of the file in the exploded deployment.
-* Any change to the `src/main/webapp/WEB-INF` implies a copy of the file in the exploded deployment and a redeploy.
+* Any change to the `src/main/webapp` implies a copy of the file in the exploded deployment and a redeploy.
 * Any change to the default resources `src/main/resources` as well as configured resource directories in pom.xml implies a repackage and redeploy.
 * Any change to the pom.xml file outside of the plugin configuration implies a recompile, repackage and redeploy.
 * Any change to the plugin configuration implies rebuild/restart of the bootable JAR, recompile, repackage and redeploy.

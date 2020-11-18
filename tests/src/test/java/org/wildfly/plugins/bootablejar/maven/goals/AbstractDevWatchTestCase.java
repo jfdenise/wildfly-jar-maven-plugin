@@ -26,6 +26,7 @@ import java.util.Locale;
 import org.jboss.as.controller.client.ModelControllerClient;
 
 import org.wildfly.plugin.core.ServerHelper;
+import static org.wildfly.plugins.bootablejar.maven.goals.DevWatchBootableJarMojo.TEST_PROPERTY_EXIT;
 
 /**
  * @author jdenise
@@ -46,7 +47,7 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
     private Thread goalThread;
     private Path logFile;
     private Path provisioningXml;
-
+    private Path exitFile;
     protected AbstractDevWatchTestCase(String projectName, String testName) {
         super(projectName, testName, false, null);
     }
@@ -58,6 +59,7 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
         patchPomFile(pomFile.toFile());
         provisioningXml = getTestDir().resolve("target").
                 resolve("bootable-jar-build-artifacts").resolve("jar-content").resolve("provisioning.xml");
+        exitFile = getTestDir().resolve("please-exit-test" + System.currentTimeMillis());
     }
 
     static boolean isWindows() {
@@ -87,8 +89,11 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
                     } else {
                         cmd.add("mvn");
                     }
-
-                    String[] mvnCmd = {"-f", pomFile.toAbsolutePath().toString(), "wildfly-jar:dev-watch", "-e"};
+                    String prop = "-D" + TEST_PROPERTY_EXIT + "=" + exitFile.getFileName().toString();
+                    if (isWindows()) {
+                        prop = "'" + prop + "'";
+                    }
+                    String[] mvnCmd = {"-f", pomFile.toAbsolutePath().toString(), "wildfly-jar:dev-watch", "-e", prop};
                     cmd.addAll(Arrays.asList(mvnCmd));
                     logFile = getTestDir().resolve("target").resolve("dev-watch-test-output.txt");
                     if (Files.exists(logFile)) {
@@ -135,21 +140,23 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
     @Override
     public void shutdownServer() throws Exception {
         super.shutdownServer();
-        if (process != null) {
-            if (retCode != null) {
-                Exception ex = new Exception("dev-watch goal process not running although it should. Return code " + retCode);
-                if (processException != null) {
-                    ex.addSuppressed(processException);
-                }
-                throw ex;
-            }
-
-            process.destroy();
-            goalThread.join();
-            if (processException != null) {
-                throw processException;
-            }
-        }
+        Files.createFile(exitFile);
+        System.out.println("Created exit file, process should exit.");
+//        if (process != null) {
+//            if (retCode != null) {
+//                Exception ex = new Exception("dev-watch goal process not running although it should. Return code " + retCode);
+//                if (processException != null) {
+//                    ex.addSuppressed(processException);
+//                }
+//                throw ex;
+//            }
+//
+//            process.destroy();
+//            goalThread.join();
+//            if (processException != null) {
+//                throw processException;
+//            }
+//        }
     }
 
     boolean logFileContains(String msg) throws IOException {

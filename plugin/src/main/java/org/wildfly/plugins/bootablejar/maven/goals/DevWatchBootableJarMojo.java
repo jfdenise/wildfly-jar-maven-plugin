@@ -23,6 +23,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -153,6 +154,9 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
     private Process process;
     private final ScannerController scannerController = new ScannerController();
 
+    // Test specific content to have the process to exit on Windows
+    static final String TEST_PROPERTY_EXIT = "dev-watch.test.exit.on.file";
+
     private class ScannerController {
 
         private volatile boolean scanning;
@@ -174,21 +178,30 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             try {
                 client.execute(operation);
                 scanning = false;
+                client.close();
             } catch (Exception ex) {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
-                        getLog().info("Error scanning, waiting for server to come online " + ex);
-                        while (scanning) {
-                            try {
-                                ServerHelper.waitForStandalone(client, timeout);
-                            } catch (Exception ex) {
-                                getLog().error("Exception " + ex);
+                        try {
+                            getLog().info("Error scanning, waiting for server to come online " + ex);
+                            while (scanning) {
+                                try {
+                                    ServerHelper.waitForStandalone(client, timeout);
+                                } catch (Exception ex) {
+                                    getLog().error("Exception " + ex);
+                                }
+                                try {
+                                    client.execute(operation);
+                                    scanning = false;
+                                } catch (IOException ex) {
+                                    getLog().error("Exception " + ex);
+                                }
                             }
+                        } finally {
                             try {
-                                client.execute(operation);
-                                scanning = false;
-                            } catch (IOException ex) {
+                                client.close();
+                            } catch (Exception ex) {
                                 getLog().error("Exception " + ex);
                             }
                         }
@@ -202,6 +215,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
     }
 
     private class ProjectContextImpl implements DevWatchContext.ProjectContext {
+
         private final MavenProject currentProject;
         private final Xpp3Dom currentBootableJarConfig;
         private final Path projectBuildDir;
@@ -347,28 +361,34 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         }
 
     }
+
     @Override
     protected void doExecute() throws MojoExecutionException, MojoFailureException {
         boolean isRebuild = System.getProperty(REBUILD_MARKER) != null;
         if (isRebuild) {
             return;
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (process != null) {
-                    process.destroy();
-                    try {
-                        process.waitFor();
-                    } catch (InterruptedException ex) {
-                        getLog().error("Error waiting for process to terminate " + ex);
-                    }
-                }
-            }
-        }));
         try {
             WatchService watcher = FileSystems.getDefault().newWatchService();
+            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        watcher.close();
+                    } catch (IOException ex) {
+                        getLog().error("Error closing the watcher " + ex);
+                    }
+                    if (process != null) {
+                        process.destroy();
+                        try {
+                            process.waitFor();
+                        } catch (InterruptedException ex) {
+                            getLog().error("Error waiting for process to terminate " + ex);
+                        }
+                    }
+                }
+            }));
+
             ProjectContext projectContext = new ProjectContextImpl(project,
                     (Xpp3Dom) getPlugin(project).getConfiguration(),
                     Paths.get(projectBuildDir), sourceDir.toPath(), contextRoot, cliSessions, extraServerContentDirs);
@@ -390,78 +410,89 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
     private void watch(WatchService watcher, DevWatchContext ctx) throws IOException, MojoExecutionException, InterruptedException, MojoFailureException, ProjectBuildingException {
         boolean mustRebuildJar = false;
-        for (;;) {
-            WatchKey key = watcher.take();
-            BootableAppEventHandler handler = ctx.newEventHandler();
-            for (WatchEvent<?> event : key.pollEvents()) {
-                WatchEvent.Kind<?> kind = event.kind();
-                if (kind == OVERFLOW) {
-                    continue;
-                }
-                @SuppressWarnings("unchecked")
-                WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + ev.context());
-                Path absolutePath = ctx.getPath(key, ev.context());
-                if (absolutePath == null) {
-                    continue;
-                }
-                getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + absolutePath);
-                try {
-                    handler.handle(ev.kind(), absolutePath);
-                } catch (Exception ex) {
-                    getLog().error("[WATCH], exception handling file change: " + ex);
-                }
-            }
-
-            try {
-                if (handler.rebuildBootableJAR || mustRebuildJar) {
-                    // We must first stop the server, on Windows platform
-                    // we can't rebuild a Bootable JAR whenthe server is running.
-                    getLog().info("[WATCH] stopping running bootable JAR");
-                    process.destroy();
-                    process.waitFor();
-                    getLog().info("[WATCH] server stopped");
-                    // Must rebuild the bootable JAR.
-                    System.setProperty(REBUILD_MARKER, "true");
-                    getLog().info("[WATCH] re-building bootable JAR");
-                    try {
-                        ctx = triggerRebuildBootableJar(watcher, ctx);
-                        mustRebuildJar = false;
-                    } catch (Exception ex) {
-                        // We are not able to rebuild the server, force rebuilding it
-                        // for the next event.
-                        mustRebuildJar = true;
-                        throw ex;
+        String exitOnFile = System.getProperty(TEST_PROPERTY_EXIT);
+        try {
+            for (;;) {
+                WatchKey key = watcher.take();
+                BootableAppEventHandler handler = ctx.newEventHandler();
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    WatchEvent.Kind<?> kind = event.kind();
+                    if (kind == OVERFLOW) {
+                        continue;
                     }
-                    // We were able to rebuild a bootable JAR
-                    // can stop the server
+                    @SuppressWarnings("unchecked")
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + ev.context());
+                    if (exitOnFile != null && exitOnFile.equals(ev.context().getFileName().toString())) {
+                        getLog().info("Asked to exit by the test");
+                        return;
+                    }
+                    Path absolutePath = ctx.getPath(key, ev.context());
+                    if (absolutePath == null) {
+                        continue;
+                    }
+                    getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + absolutePath);
+                    try {
+                        handler.handle(ev.kind(), absolutePath);
+                    } catch (Exception ex) {
+                        getLog().error("[WATCH], exception handling file change: " + ex);
+                    }
+                }
 
-                    handler = ctx.newEventHandler();
-                    ctx.build(false);
-                    process = Launcher.of(buildCommandBuilder())
-                            .inherit()
-                            .launch();
-                    getLog().info("[WATCH] server re-started");
-                } else {
-                    if (handler.reset) {
-                        ctx = resetWatcher(watcher, ctx);
+                try {
+                    if (handler.rebuildBootableJAR || mustRebuildJar) {
+                        // We must first stop the server, on Windows platform
+                        // we can't rebuild a Bootable JAR whenthe server is running.
+                        getLog().info("[WATCH] stopping running bootable JAR");
+                        process.destroy();
+                        process.waitFor();
+                        getLog().info("[WATCH] server stopped");
+                        // Must rebuild the bootable JAR.
+                        System.setProperty(REBUILD_MARKER, "true");
+                        getLog().info("[WATCH] re-building bootable JAR");
+                        try {
+                            ctx = triggerRebuildBootableJar(watcher, ctx);
+                            mustRebuildJar = false;
+                        } catch (Exception ex) {
+                            // We are not able to rebuild the server, force rebuilding it
+                            // for the next event.
+                            mustRebuildJar = true;
+                            throw ex;
+                        }
+                        // We were able to rebuild a bootable JAR
+                        // can stop the server
+
                         handler = ctx.newEventHandler();
                         ctx.build(false);
+                        process = Launcher.of(buildCommandBuilder())
+                                .inherit()
+                                .launch();
+                        getLog().info("[WATCH] server re-started");
                     } else {
-                        handler.applyChanges();
+                        if (handler.reset) {
+                            ctx = resetWatcher(watcher, ctx);
+                            handler = ctx.newEventHandler();
+                            ctx.build(false);
+                        } else {
+                            handler.applyChanges();
+                        }
                     }
-                }
-            } catch (Exception ex) {
-                getLog().error("Error rebuilding: " + ex);
-                Throwable cause = ex.getCause();
-                if (cause instanceof ProvisioningException) {
-                    getLog().error(cause.getLocalizedMessage());
-                }
-                //if (getLog().isDebugEnabled()) {
+                } catch (Exception ex) {
+                    getLog().error("Error rebuilding: " + ex);
+                    Throwable cause = ex.getCause();
+                    if (cause instanceof ProvisioningException) {
+                        getLog().error(cause.getLocalizedMessage());
+                    }
+                    //if (getLog().isDebugEnabled()) {
                     ex.printStackTrace();
-                //}
+                    //}
+                }
+                key.reset();
             }
-            key.reset();
+        } catch (ClosedWatchServiceException ex) {
+            // OK Can ignore, we have been closed by shutdown hook.
+        } finally {
+            watcher.close();
         }
     }
 
@@ -785,7 +816,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     if (child.getValue() != null) {
                         dom.setValue(child.getValue());
                     }
-                    for(String attribute : child.getAttributeNames()) {
+                    for (String attribute : child.getAttributeNames()) {
                         dom.setAttribute(attribute, child.getAttribute(attribute));
                     }
                     // We don't want the default values to be merged in anyway with an existing child.
