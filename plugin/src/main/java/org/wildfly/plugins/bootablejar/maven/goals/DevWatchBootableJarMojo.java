@@ -408,7 +408,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
     @Override
     protected String getScannerConfiguration() {
-        return "scan-enabled=false";
+        return "scan-enabled=false,auto-deploy-exploded=false,auto-deploy-xml=false,auto-deploy-zipped=false";
     }
 
     private void watch(WatchService watcher, DevWatchContext ctx) throws IOException, MojoExecutionException, InterruptedException, MojoFailureException, ProjectBuildingException {
