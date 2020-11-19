@@ -35,7 +35,8 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
     @Test
     public void testDevWatchWeb() throws Exception {
         startGoal();
-        //Thread.sleep(10000);
+        System.out.println("STEP 1 " + new java.util.Date());
+        Thread.sleep(10000);
         // Does not contain extra layers added during the test
         assertFalse(layerExists("jmx"));
         assertTrue(layerExists("jaxrs"));
@@ -43,7 +44,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve("ROOT.war");
         assertTrue(targetDir.toString(), Files.exists(targetDir));
         assertTrue(targetDir.toString(), Files.isDirectory(targetDir));
-
+        System.out.println("STEP 2 " + new java.util.Date());
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
         String msg = "WildFly bootable jar!";
@@ -71,12 +72,13 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         str = str.replace(radical, patchedRadical);
         String patchedContent = patchedRadical + msg;
         Files.write(javaFile, str.getBytes());
+        System.out.println("STEP 3 " + new java.util.Date());
         // Do not access the endpoint that access the file system.
         if (isWindows()) {
             Thread.sleep(5000);
         }
         assertTrue(pollBodyContent(url, patchedContent));
-
+        System.out.println("STEP 4 " + new java.util.Date());
         //Thread.sleep(5000);
         //Update webapp static file and check for change.
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
