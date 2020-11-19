@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.ProjectBuildingException;
-import org.jboss.galleon.util.IoUtils;
 import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.JAR;
 import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.WAR;
 
@@ -524,7 +523,7 @@ class DevWatchContext {
         if (repackage || cleanup) {
             Files.createDirectories(ctx.getDeploymentsDir());
             ctx.info("[WATCH] re-package");
-            IoUtils.recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
+            recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
             if (isWebApp) {
                 ctx.packageWar(targetDir);
             } else {
@@ -550,5 +549,39 @@ class DevWatchContext {
             }
         }
     }
+    public static void recursiveDelete(Path root) {
+        if (root == null || !Files.exists(root)) {
+            return;
+        }
+        try {
+            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                        throws IOException {
+                    try {
+                        Files.delete(file);
+                    } catch (IOException ex) {
+                        System.out.println("ERROR DELETING FILE " + file + "  " + ex);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
 
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException e)
+                        throws IOException {
+                    if (e != null) {
+                        // directory iteration failed
+                        throw e;
+                    }
+                    try {
+                        Files.delete(dir);
+                    } catch (IOException ex) {
+                        System.out.println("ERROR DELETING dir " + dir + "  " + ex);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+        }
+    }
 }
