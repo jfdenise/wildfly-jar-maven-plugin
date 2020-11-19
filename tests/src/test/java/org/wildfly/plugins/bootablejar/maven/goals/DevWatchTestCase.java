@@ -47,7 +47,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         System.out.println("STEP 2 " + new java.util.Date());
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
-        String msg = "WildFly bootable jar!";
+        String msg = "XXXWildFly bootable jar!";
         String expectedContent = radical + msg;
         //assertEquals(expectedContent, getBodyContent(url));
 
