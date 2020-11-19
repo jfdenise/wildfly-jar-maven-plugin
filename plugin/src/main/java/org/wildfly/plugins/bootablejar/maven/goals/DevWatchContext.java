@@ -559,6 +559,7 @@ class DevWatchContext {
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                         throws IOException {
                     try {
+                        System.out.println("DELETING FILE " + file);
                         Files.delete(file);
                     } catch (IOException ex) {
                         System.out.println("ERROR DELETING FILE " + file + "  " + ex);
