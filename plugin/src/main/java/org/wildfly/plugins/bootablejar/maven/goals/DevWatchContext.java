@@ -523,7 +523,7 @@ class DevWatchContext {
         if (repackage || cleanup) {
 
             ctx.info("[WATCH] re-package");
-            //recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
+            recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
             if (!Files.exists(ctx.getDeploymentsDir())) {
                 Files.createDirectories(ctx.getDeploymentsDir());
             }

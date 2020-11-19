@@ -191,8 +191,10 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                                 } catch (Exception ex) {
                                     getLog().error("Exception " + ex);
                                 }
+                                getLog().info("Server is online, can scan.");
                                 try {
                                     client.execute(operation);
+                                    getLog().info("Server asked to scan.");
                                     scanning = false;
                                 } catch (IOException ex) {
                                     getLog().error("Exception " + ex);
@@ -201,6 +203,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                         } finally {
                             try {
                                 client.close();
+                                System.out.println("Closed client.");
                             } catch (Exception ex) {
                                 getLog().error("Exception " + ex);
                             }
@@ -358,7 +361,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         @Override
         public void scan() throws Exception {
             System.out.println("DISABLED SCANNER");
-            //scannerController.scan();
+            scannerController.scan();
         }
 
     }
