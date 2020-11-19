@@ -35,6 +35,7 @@
                     <layers>
                         <layer>jaxrs</layer>
                         <layer>management</layer>
+                        <layer>logging</layer>
                         <!-- ###LAYERS### !-->
                     </layers>
                     <excluded-layers>
