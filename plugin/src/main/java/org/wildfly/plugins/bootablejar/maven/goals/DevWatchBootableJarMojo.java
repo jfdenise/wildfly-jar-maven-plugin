@@ -175,16 +175,16 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             }
             final ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port);
             scanning = true;
-            try {
-                client.execute(operation);
-                scanning = false;
-                client.close();
-            } catch (Exception ex) {
+//            try {
+//                client.execute(operation);
+//                scanning = false;
+//                client.close();
+//            } catch (Exception ex) {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            getLog().info("Error scanning, waiting for server to come online " + ex);
+                            getLog().info("Error scanning, waiting for server to come online ");
                             while (scanning) {
                                 try {
                                     ServerHelper.waitForStandalone(client, timeout);
@@ -213,7 +213,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 };
                 Thread thr = new Thread(r);
                 thr.start();
-            }
+            //}
         }
     }
 
