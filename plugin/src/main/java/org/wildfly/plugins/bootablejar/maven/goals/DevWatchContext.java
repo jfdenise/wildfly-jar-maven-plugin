@@ -580,7 +580,19 @@ class DevWatchContext {
                         Files.delete(dir);
                     } catch (IOException ex) {
                         System.out.println("ERROR DELETING dir " + dir + "  " + ex);
-                        Files.list(dir).forEach((p) -> System.out.println("child " + p));
+                        Files.list(dir).forEach((p) -> {
+                            System.out.println("child " + p);
+                            if (Files.isDirectory(p)) {
+                                try {
+                                    Files.list(p).forEach((p2) -> {
+                                        System.out.println("child-child " + p2);
+                                    });
+                                } catch (IOException ex1) {
+                                    System.out.println("ERROR " + ex1);
+                                }
+
+                            }
+                        });
                     }
                     return FileVisitResult.CONTINUE;
                 }
