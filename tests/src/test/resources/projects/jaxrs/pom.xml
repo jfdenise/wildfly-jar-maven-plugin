@@ -43,6 +43,13 @@
                     <plugin-options>
                         <jboss-fork-embedded>true</jboss-fork-embedded>
                     </plugin-options>
+                    <cli-sessions>
+                        <cli-session>
+                            <script-files>
+                                <script>scripts/logging.cli</script>
+                            </script-files>
+                        </cli-session>
+                    </cli-sessions>
                 </configuration>
                 <executions>
                     <execution>

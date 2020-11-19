@@ -175,11 +175,13 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             }
             final ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port);
             scanning = true;
-//            try {
-//                client.execute(operation);
-//                scanning = false;
-//                client.close();
-//            } catch (Exception ex) {
+            try {
+                System.out.println("!!!!!!!!!!!!SCANNING REQUIRED");
+                client.execute(operation);
+                System.out.println("!!!!!!!!!!!!SCANNING DONE");
+                scanning = false;
+                client.close();
+            } catch (Exception ex) {
                 Runnable r = new Runnable() {
                     @Override
                     public void run() {
@@ -192,13 +194,13 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                                     getLog().error("Exception " + ex);
                                 }
                                 getLog().info("Server is online, can scan.");
-                                //try {
-                                // client.execute(operation);
-                                getLog().info("Server asked to scan FAKE.");
+                                try {
+                                    client.execute(operation);
+                                    getLog().info("Server asked to scan.");
                                     scanning = false;
-                                //} catch (IOException ex) {
-                                //    getLog().error("Exception " + ex);
-                                // }
+                                } catch (IOException ex) {
+                                    getLog().error("Exception " + ex);
+                                }
                             }
                         } finally {
                             try {
@@ -213,7 +215,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 };
                 Thread thr = new Thread(r);
                 thr.start();
-            //}
+            }
         }
     }
 
