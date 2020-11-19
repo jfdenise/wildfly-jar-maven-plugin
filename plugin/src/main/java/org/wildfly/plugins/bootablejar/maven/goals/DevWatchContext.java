@@ -572,12 +572,15 @@ class DevWatchContext {
                         throws IOException {
                     if (e != null) {
                         // directory iteration failed
+                        System.out.println("HOHO AN ERROR " + e);
                         throw e;
                     }
                     try {
+                        System.out.println("DELETING FILE " + dir);
                         Files.delete(dir);
                     } catch (IOException ex) {
                         System.out.println("ERROR DELETING dir " + dir + "  " + ex);
+                        Files.list(dir).forEach((p) -> System.out.println("child " + p));
                     }
                     return FileVisitResult.CONTINUE;
                 }
