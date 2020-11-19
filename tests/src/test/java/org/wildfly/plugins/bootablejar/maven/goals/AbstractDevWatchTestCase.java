@@ -68,7 +68,7 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
 
     void startGoal() throws Exception {
         // Wait, the project filesystem layout has just been created
-        // Thread.sleep(10000);
+        Thread.sleep(10000);
         Runnable r = new Runnable() {
             @Override
             public void run() {
