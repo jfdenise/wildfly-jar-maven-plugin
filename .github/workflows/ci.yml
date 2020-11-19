@@ -43,11 +43,11 @@ jobs:
         with:
           name: surefire-reports-${{ matrix.os }}-${{ matrix.java }}
           path: '**/surefire-reports/*.txt'
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: artifacts-${{ matrix.os }}-${{ matrix.java }}
-          path: '**/devwatch-watch-test/*'
+      #- uses: actions/upload-artifact@v2
+      #  if: failure()
+      #  with:
+      #    name: artifacts-${{ matrix.os }}-${{ matrix.java }}
+      #    path: '**/devwatch-watch-test/*'
       - uses: actions/upload-artifact@v2
         if: failure()
         with:

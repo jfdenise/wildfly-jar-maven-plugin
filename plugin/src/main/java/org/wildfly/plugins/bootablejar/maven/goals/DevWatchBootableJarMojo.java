@@ -357,7 +357,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
         @Override
         public void scan() throws Exception {
-            scannerController.scan();
+            System.out.println("DISABLED SCANNER");
+            //scannerController.scan();
         }
 
     }
