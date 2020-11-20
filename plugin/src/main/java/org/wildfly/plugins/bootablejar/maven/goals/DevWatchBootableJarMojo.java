@@ -496,7 +496,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         final String warPluginKey = ORG_APACHE_MAVEN_PLUGINS + ":" + MAVEN_WAR_PLUGIN;
         final Plugin warPlugin = project.getPlugin(warPluginKey);
         // We could have removed content, so must delete the previous deployment.
-        IoUtils.recursiveDelete(targetDir);
+        //IoUtils.recursiveDelete(targetDir);
         if (warPlugin != null) {
             executeGoal(project, warPlugin, ORG_APACHE_MAVEN_PLUGINS, MAVEN_WAR_PLUGIN, MAVEN_EXPLODED_GOAL, getPluginConfig(warPlugin, targetDir));
         } else {
