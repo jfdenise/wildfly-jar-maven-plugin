@@ -54,6 +54,7 @@ jobs:
           name: surefire-reports-${{ matrix.os }}-${{ matrix.java }}
           path: '**/surefire-reports/*.txt'
       - uses: actions/upload-artifact@v2
+        if: failure()
         with:
           name: devwatch-logs-${{ matrix.os }}-${{ matrix.java }}
           path: '**/dev-watch-test-output.txt'
