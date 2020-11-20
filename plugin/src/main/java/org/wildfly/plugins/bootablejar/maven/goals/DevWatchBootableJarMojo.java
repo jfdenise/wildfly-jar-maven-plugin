@@ -175,6 +175,19 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 client.close();
             }
         }
+
+        void undeploy(String name) throws Exception {
+            ModelNode address = new ModelNode();
+            address.add("deployment", name);
+            final ModelNode op = Operations.createOperation("remove", address);
+            try (ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port)) {
+                ServerHelper.waitForStandalone(client, timeout);
+                System.out.println("!!!!!!!!!!!!UNDEPLOY");
+                client.execute(op);
+                System.out.println("!!!!!!!!!!!!UNDEPLOY DONE");
+                client.close();
+            }
+        }
     }
 
     private class ProjectContextImpl implements DevWatchContext.ProjectContext {

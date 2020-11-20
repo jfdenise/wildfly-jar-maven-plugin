@@ -107,6 +107,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         if (isWindows()) {
             Thread.sleep(5000);
         }
+        Thread.sleep(2000);
         String expectedNewContent = patchedRadical + testMsg;
         assertTrue(pollBodyContent(url, expectedNewContent));
 
@@ -144,6 +145,11 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         assertFalse(logFileContains(LOG_SERVER_RESTART));
         assertTrue(logFileContains(LOG_RESET_WATCHER));
 
+        // Now delete the resource file, should be re-deployed and not present.
+        Files.delete(resourcesFile2);
+        Thread.sleep(2000);
+        assertTrue(pollBodyContent(url, expectedNewContent));
+
         //Thread.sleep(5000);
         // Add extra layers!
         String updatedLayers = "<layer>jmx</layer>";
@@ -157,7 +163,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         if (isWindows()) {
             Thread.sleep(10000);
         }
-        assertTrue(pollBodyContent(url, latestMsg));
+        assertTrue(pollBodyContent(url, expectedNewContent));
 
     }
 }

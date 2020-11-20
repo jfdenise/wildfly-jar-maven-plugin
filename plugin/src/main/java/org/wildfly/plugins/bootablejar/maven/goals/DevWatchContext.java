@@ -127,6 +127,7 @@ class DevWatchContext {
                     ctx.info("[WATCH] Delete file " + indep);
                     Files.deleteIfExists(indep);
                     deleted.put(absolutePath, indep);
+                    redeploy = true;
                 } else {
                     ctx.info("[WATCH] Not a deployment file " + absolutePath);
                     deleted.put(absolutePath, absolutePath);
