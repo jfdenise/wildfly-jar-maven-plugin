@@ -85,10 +85,14 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
                         if (isCI) {
                             cmd.add("pwsh.EXE");
                             cmd.add("-command ");
+                            cmd.add("mvn");
                             prop = "'" + prop + "'";
+                        } else {
+                            cmd.add("mvn.cmd");
                         }
+                    } else {
+                        cmd.add("mvn");
                     }
-                    cmd.add("mvn");
 
                     String[] mvnCmd = {"-f", pomFile.toAbsolutePath().toString(), "wildfly-jar:dev-watch", "-e", prop};
                     cmd.addAll(Arrays.asList(mvnCmd));
