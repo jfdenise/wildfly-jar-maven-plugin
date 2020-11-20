@@ -47,19 +47,19 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         System.out.println("STEP 2 " + new java.util.Date());
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
-        String msg = "XXXWildFly bootable jar!";
+        String msg = "WildFly bootable jar!";
         String expectedContent = radical + msg;
-        //assertEquals(expectedContent, getBodyContent(url));
+        assertEquals(expectedContent, getBodyContent(url));
 
         if (isWindows()) {
             Thread.sleep(5000);
         }
         String staticUrl = createUrl(TestEnvironment.getHttpPort(), "");
-       String expectedStaticContent = "Hello from static index.html file" + System.lineSeparator();
-//        String liveContent = getBodyContent(staticUrl);
-//        System.out.println("[" + liveContent + "]");
-//        System.out.println("[" + expectedStaticContent + "]");
-//        assertEquals(expectedStaticContent, liveContent);
+        String expectedStaticContent = "Hello from static index.html file" + System.lineSeparator();
+        String liveContent = getBodyContent(staticUrl);
+        System.out.println("[" + liveContent + "]");
+        System.out.println("[" + expectedStaticContent + "]");
+        assertEquals(expectedStaticContent, liveContent);
 
         if (isWindows()) {
             Thread.sleep(5000);
@@ -79,7 +79,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         }
         assertTrue(pollBodyContent(url, patchedContent));
         System.out.println("STEP 4 " + new java.util.Date());
-        //Thread.sleep(5000);
+        Thread.sleep(2000);
         //Update webapp static file and check for change.
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
                 resolve("index.html");
@@ -94,7 +94,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         }
         assertTrue(pollBodyContent(staticUrl, patchedStaticContent));
 
-        //Thread.sleep(5000);
+        Thread.sleep(2000);
         // Update resources file and check.
         Path resourcesFile = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("myresources.properties");
