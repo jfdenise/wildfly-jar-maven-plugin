@@ -525,7 +525,7 @@ class DevWatchContext {
 
             ctx.info("[WATCH] re-package");
             // We first first undeploy
-            //recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
+            recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
             if (!Files.exists(ctx.getDeploymentsDir())) {
                 Files.createDirectories(ctx.getDeploymentsDir());
             }

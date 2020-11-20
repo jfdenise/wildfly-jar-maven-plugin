@@ -157,6 +157,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
     static final String TEST_PROPERTY_EXIT = "dev-watch.test.exit.on.file";
 
     private class ScannerController {
+
         private final ModelNode operation;
 
         ScannerController() {
@@ -169,24 +170,71 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         void scan() throws Exception {
             try (ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port)) {
                 ServerHelper.waitForStandalone(client, timeout);
-                System.out.println("!!!!!!!!!!!!SCANNING REQUIRED");
-                client.execute(operation);
-                System.out.println("!!!!!!!!!!!!SCANNING DONE");
-                client.close();
+                System.out.println("!!!!!!!!!!!!DEPLOYMENT REQUIRED");
+                // First undeploy
+                undeploy(client, "ROOT.war");
+                waitRemoved(client, "ROOT.war");
+                deploy(client, "ROOT.war");
+                //client.execute(operation);
+                waitStatus(client, "ROOT.war");
             }
         }
 
-        void undeploy(String name) throws Exception {
+        void waitRemoved(ModelControllerClient client, String name) throws Exception {
+            ModelNode address = new ModelNode();
+            address.add("deployment", name);
+            final ModelNode op = Operations.createOperation("read-resource", address);
+            boolean failed = false;
+            while (!failed) {
+                ModelNode rep = client.execute(op);
+                if ("failed".equals(rep.get("outcome").asString())) {
+                    System.out.println("!!!!!!!!!!!!REMOVED DEPLOYMENT");
+                    failed = true;
+                    break;
+                }
+                Thread.sleep(100);
+            }
+        }
+
+        void waitStatus(ModelControllerClient client, String name) throws Exception {
+            ModelNode address = new ModelNode();
+            address.add("deployment", name);
+            final ModelNode op = Operations.createOperation("read-resource", address);
+            boolean success = false;
+            while (!success) {
+                ModelNode rep = client.execute(op);
+                if ("success".equals(rep.get("outcome").asString())) {
+                    System.out.println("!!!!!!!!!!!!DEPLOYMENT IS UP");
+                    success = true;
+                    break;
+                }
+                Thread.sleep(100);
+            }
+        }
+
+        void undeploy(ModelControllerClient client, String name) throws Exception {
             ModelNode address = new ModelNode();
             address.add("deployment", name);
             final ModelNode op = Operations.createOperation("remove", address);
-            try (ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port)) {
-                ServerHelper.waitForStandalone(client, timeout);
-                System.out.println("!!!!!!!!!!!!UNDEPLOY");
-                client.execute(op);
-                System.out.println("!!!!!!!!!!!!UNDEPLOY DONE");
-                client.close();
-            }
+            ServerHelper.waitForStandalone(client, timeout);
+            System.out.println("!!!!!!!!!!!!UNDEPLOY");
+            client.execute(op);
+            System.out.println("!!!!!!!!!!!!UNDEPLOY DONE");
+        }
+
+        void deploy(ModelControllerClient client, String name) throws Exception {
+            ModelNode address = new ModelNode();
+            address.add("deployment", name);
+            final ModelNode op = Operations.createOperation("add", address);
+            ModelNode content = op.get("content").get(0);
+            content.get("path").set(getDeploymentsDir().resolve(name).toAbsolutePath().toString());
+            content.get("archive").set(false);
+            ServerHelper.waitForStandalone(client, timeout);
+            System.out.println("!!!!!!!!!!!!DEPLOY");
+            client.execute(op);
+            final ModelNode op2 = Operations.createOperation("deploy", address);
+            client.execute(op2);
+            System.out.println("!!!!!!!!!!!!DEPLOY DONE");
         }
     }
 
