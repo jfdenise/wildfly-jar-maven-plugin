@@ -163,7 +163,7 @@ class DevWatchContext {
         void applyChanges() throws IOException, MojoExecutionException {
             if (compile || redeploy) {
                 ctx.info("[WATCH] updating application");
-                rebuild(false, compile, repackage, redeploy, clean);
+                rebuild(false, compile, repackage, redeploy, clean, true);
             }
         }
 
@@ -509,11 +509,11 @@ class DevWatchContext {
         return handler;
     }
 
-    void build(boolean autoCompile) throws IOException, MojoExecutionException {
-        rebuild(autoCompile, true, true, true, true);
+    void build(boolean autoCompile, boolean scan) throws IOException, MojoExecutionException {
+        rebuild(autoCompile, true, true, true, true, scan);
     }
 
-    private void rebuild(boolean autoCompile, boolean compile, boolean repackage, boolean redeploy, boolean cleanup) throws IOException, MojoExecutionException {
+    private void rebuild(boolean autoCompile, boolean compile, boolean repackage, boolean redeploy, boolean cleanup, boolean scan) throws IOException, MojoExecutionException {
         if (cleanup) {
             ctx.cleanup();
         }
@@ -546,7 +546,10 @@ class DevWatchContext {
                 Files.createFile(marker);
             }
             try {
-                ctx.scan();
+                // Will be started later. TO REVISIT
+                if (scan) {
+                    ctx.scan();
+                }
             } catch (Exception ex) {
                 throw new MojoExecutionException(ex.toString(), ex);
             }

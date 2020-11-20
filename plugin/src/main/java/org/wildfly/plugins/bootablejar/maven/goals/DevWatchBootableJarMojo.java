@@ -18,7 +18,6 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -158,8 +157,6 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
     static final String TEST_PROPERTY_EXIT = "dev-watch.test.exit.on.file";
 
     private class ScannerController {
-
-        private volatile boolean scanning;
         private final ModelNode operation;
 
         ScannerController() {
@@ -169,52 +166,13 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             operation = Operations.createOperation("run-scan", address);
         }
 
-        void scan() throws UnknownHostException {
-            if (scanning) {
-                return;
-            }
-            final ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port);
-            scanning = true;
-            try {
+        void scan() throws Exception {
+            try (ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port)) {
+                ServerHelper.waitForStandalone(client, timeout);
                 System.out.println("!!!!!!!!!!!!SCANNING REQUIRED");
                 client.execute(operation);
                 System.out.println("!!!!!!!!!!!!SCANNING DONE");
-                scanning = false;
                 client.close();
-            } catch (Exception ex) {
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            getLog().info("Error scanning, waiting for server to come online ");
-                            while (scanning) {
-                                try {
-                                    ServerHelper.waitForStandalone(client, timeout);
-                                } catch (Exception ex) {
-                                    getLog().error("Exception " + ex);
-                                }
-                                getLog().info("Server is online, can scan.");
-                                try {
-                                    client.execute(operation);
-                                    getLog().info("Server asked to scan.");
-                                    scanning = false;
-                                } catch (IOException ex) {
-                                    getLog().error("Exception " + ex);
-                                }
-                            }
-                        } finally {
-                            try {
-                                client.close();
-                                System.out.println("Closed client.");
-                            } catch (Exception ex) {
-                                getLog().error("Exception " + ex);
-                            }
-                        }
-
-                    }
-                };
-                Thread thr = new Thread(r);
-                thr.start();
             }
         }
     }
@@ -398,10 +356,13 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     (Xpp3Dom) getPlugin(project).getConfiguration(),
                     Paths.get(projectBuildDir), sourceDir.toPath(), contextRoot, cliSessions, extraServerContentDirs);
             DevWatchContext ctx = new DevWatchContext(projectContext, watcher);
-            ctx.build(true);
+            ctx.build(true, false);
             process = Launcher.of(buildCommandBuilder())
                     .inherit()
                     .launch();
+            // When online an explicit scan is operated.
+            // We start to wait for changes once deployed.
+            scannerController.scan();
             watch(watcher, ctx);
         } catch (Exception e) {
             throw new MojoExecutionException(e.getLocalizedMessage(), e);
@@ -468,16 +429,17 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                         // can stop the server
 
                         handler = ctx.newEventHandler();
-                        ctx.build(false);
+                        ctx.build(false, false);
                         process = Launcher.of(buildCommandBuilder())
                                 .inherit()
                                 .launch();
+                        scannerController.scan();
                         getLog().info("[WATCH] server re-started");
                     } else {
                         if (handler.reset) {
                             ctx = resetWatcher(watcher, ctx);
                             handler = ctx.newEventHandler();
-                            ctx.build(false);
+                            ctx.build(false, true);
                         } else {
                             handler.applyChanges();
                         }
