@@ -75,11 +75,11 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         System.out.println("STEP 3 " + new java.util.Date());
         // Do not access the endpoint that access the file system.
         if (isWindows()) {
-            Thread.sleep(5000);
+            Thread.sleep(10000);
         }
         assertTrue(pollBodyContent(url, patchedContent));
         System.out.println("STEP 4 " + new java.util.Date());
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         //Update webapp static file and check for change.
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
                 resolve("index.html");
