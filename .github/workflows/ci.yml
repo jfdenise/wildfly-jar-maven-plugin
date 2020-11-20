@@ -36,7 +36,7 @@ jobs:
       - name: Build on ${{ matrix.java }}
         run: mvn clean install '-DskipTests' '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true'
       - name: Test on ${{ matrix.java }}
-        run: mvn install '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DevWatch*TestCase' '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true'
+        run: mvn install '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DevWatchTestCase' '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true'
         working-directory: tests
       - uses: actions/upload-artifact@v2
         if: failure()

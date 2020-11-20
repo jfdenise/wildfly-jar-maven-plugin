@@ -79,20 +79,17 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
 
                     // CI has a different executable path.
                     Boolean isCI = Boolean.getBoolean("org.wildfly.bootable.jar.ci.execution");
+                    String prop = "-D" + TEST_PROPERTY_EXIT + "=" + exitFile.getFileName().toString();
                     List<String> cmd = new ArrayList<>();
                     if (isWindows()) {
                         if (isCI) {
-                            cmd.add("C:\\Program Files\\PowerShell\\7\\pwsh.EXE");
+                            cmd.add("pwsh.EXE");
                             cmd.add("-command ");
+                            prop = "'" + prop + "'";
                         }
-                        cmd.add("mvn.cmd");
-                    } else {
-                        cmd.add("mvn");
                     }
-                    String prop = "-D" + TEST_PROPERTY_EXIT + "=" + exitFile.getFileName().toString();
-                    if (isWindows()) {
-                        prop = "'" + prop + "'";
-                    }
+                    cmd.add("mvn");
+
                     String[] mvnCmd = {"-f", pomFile.toAbsolutePath().toString(), "wildfly-jar:dev-watch", "-e", prop};
                     cmd.addAll(Arrays.asList(mvnCmd));
                     logFile = getTestDir().resolve("target").resolve("dev-watch-test-output.txt");
