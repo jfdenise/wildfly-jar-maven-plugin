@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.ProjectBuildingException;
+import org.jboss.galleon.util.IoUtils;
 import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.JAR;
 import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.WAR;
 
@@ -464,6 +465,9 @@ class DevWatchContext {
     void cleanup() {
         for (WatchKey k : watchedDirectories.keySet()) {
             k.cancel();
+        }
+        if (Files.exists(getTargetDirectory())) {
+            IoUtils.recursiveDelete(getTargetDirectory());
         }
     }
 
