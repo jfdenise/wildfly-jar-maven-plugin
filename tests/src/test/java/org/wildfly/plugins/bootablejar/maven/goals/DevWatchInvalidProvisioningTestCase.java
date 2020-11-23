@@ -61,9 +61,9 @@ public class DevWatchInvalidProvisioningTestCase extends AbstractDevWatchTestCas
         waitForLayer(layer, TestEnvironment.getTimeout());
         waitForLogMessage(LOG_SERVER_RESTART, TestEnvironment.getTimeout());
         // Server has been re-started, retrieve the endpoint returned string
-        if (isWindows()) {
-            Thread.sleep(10000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(10000);
+//        }
 
         assertTrue(pollBodyContent(url, expectedContent));
     }

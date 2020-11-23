@@ -69,7 +69,7 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         waitForLogMessage(radical + currentName1, TestEnvironment.getTimeout());
         // wait for the previous deployment to terminate, we synchronize on the log
         // Deployment could be not yet done.
-        Thread.sleep(2000);
+        //Thread.sleep(2000);
         // Update resources file and check.
         Path ejbJarXml = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("META-INF").resolve("ejb-jar.xml");
@@ -80,9 +80,9 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         Files.write(ejbJarXml, xmlContent.getBytes());
 
         waitForLogMessage(radical + currentName2, TestEnvironment.getTimeout());
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
 
         // Add extra layers!
         Path pomFile = getTestDir().resolve("pom.xml");

@@ -68,7 +68,7 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
 
     void startGoal() throws Exception {
         // Wait, the project filesystem layout has just been created
-        Thread.sleep(10000);
+        Thread.sleep(2000);
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -122,7 +122,7 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
         try (ModelControllerClient client = ModelControllerClient.Factory.create(TestEnvironment.getHost(), TestEnvironment.getManagementPort())) {
             ServerHelper.waitForStandalone(client, TestEnvironment.getTimeout() * 5);
             // Give some time for first deployment.
-            Thread.sleep(5000);
+            Thread.sleep(2000);
         } catch (Exception ex) {
             waitException = ex;
         } finally {

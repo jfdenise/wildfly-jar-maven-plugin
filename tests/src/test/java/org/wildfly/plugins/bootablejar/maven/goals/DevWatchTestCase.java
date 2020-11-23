@@ -35,8 +35,6 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
     @Test
     public void testDevWatchWeb() throws Exception {
         startGoal();
-        System.out.println("STEP 1 " + new java.util.Date());
-        Thread.sleep(10000);
         // Does not contain extra layers added during the test
         assertFalse(layerExists("jmx"));
         assertTrue(layerExists("jaxrs"));
@@ -44,26 +42,25 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve("ROOT.war");
         assertTrue(targetDir.toString(), Files.exists(targetDir));
         assertTrue(targetDir.toString(), Files.isDirectory(targetDir));
-        System.out.println("STEP 2 " + new java.util.Date());
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
         String msg = "WildFly bootable jar!";
         String expectedContent = radical + msg;
-//        assertEquals(expectedContent, getBodyContent(url));
+        assertEquals(expectedContent, getBodyContent(url));
 
 //        if (isWindows()) {
 //            Thread.sleep(5000);
 //        }
         String staticUrl = createUrl(TestEnvironment.getHttpPort(), "");
         String expectedStaticContent = "Hello from static index.html file" + System.lineSeparator();
-//        String liveContent = getBodyContent(staticUrl);
-//        System.out.println("[" + liveContent + "]");
-//        System.out.println("[" + expectedStaticContent + "]");
-//        assertEquals(expectedStaticContent, liveContent);
+        String liveContent = getBodyContent(staticUrl);
+        System.out.println("[" + liveContent + "]");
+        System.out.println("[" + expectedStaticContent + "]");
+        assertEquals(expectedStaticContent, liveContent);
 
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
         // Update Java file and check for change.
         Path javaFile = getTestDir().resolve("src").resolve("main").resolve("java").
                 resolve("org").resolve("wildfly").resolve("plugins").resolve("demo").resolve("jaxrs").resolve("HelloWorldEndpoint.java");
@@ -72,14 +69,12 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         str = str.replace(radical, patchedRadical);
         String patchedContent = patchedRadical + msg;
         Files.write(javaFile, str.getBytes());
-        System.out.println("STEP 3 " + new java.util.Date());
         // Do not access the endpoint that access the file system.
-        if (isWindows()) {
-            Thread.sleep(10000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(10000);
+//        }
         assertTrue(pollBodyContent(url, patchedContent));
-        System.out.println("STEP 4 " + new java.util.Date());
-        Thread.sleep(5000);
+        //Thread.sleep(5000);
         //Update webapp static file and check for change.
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
                 resolve("index.html");
@@ -89,12 +84,12 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
 
         Files.write(indexFile, indexStr.getBytes());
         // Do not access the endpoint that access the file system.
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
         assertTrue(pollBodyContent(staticUrl, patchedStaticContent));
 
-        Thread.sleep(2000);
+        //Thread.sleep(2000);
         // Update resources file and check.
         Path resourcesFile = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("myresources.properties");
@@ -104,10 +99,10 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         try (FileOutputStream output = new FileOutputStream(resourcesFile.toFile())) {
             props.store(output, null);
         }
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
-        Thread.sleep(2000);
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
+//        Thread.sleep(2000);
         String expectedNewContent = patchedRadical + testMsg;
         assertTrue(pollBodyContent(url, expectedNewContent));
 
@@ -123,9 +118,9 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         try (FileOutputStream output = new FileOutputStream(resourcesFile2.toFile())) {
             newProperties.store(output, null);
         }
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
         Path pomFile = getTestDir().resolve("pom.xml");
         String pomContent = new String(Files.readAllBytes(pomFile), "UTF-8");
         // Empty file, must resist
@@ -136,9 +131,9 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
                 + "<resource><directory>" + resourcesFile.getParent() + "</directory></resource></resources>";
         pomContent = pomContent.replace(RESOURCES_MARKER, resources);
         Files.write(pomFile, pomContent.getBytes());
-        if (isWindows()) {
-            Thread.sleep(5000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(5000);
+//        }
         String latestMsg = expectedNewContent + " " + msg2;
         assertTrue(pollBodyContent(url, latestMsg));
 
@@ -147,7 +142,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
 
         // Now delete the resource file, should be re-deployed and not present.
         Files.delete(resourcesFile2);
-        Thread.sleep(2000);
+        //Thread.sleep(2000);
         assertTrue(pollBodyContent(url, expectedNewContent));
 
         //Thread.sleep(5000);
@@ -160,9 +155,9 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         waitForLayer(str, TestEnvironment.getTimeout());
         waitForLogMessage(LOG_SERVER_RESTART, TestEnvironment.getTimeout());
         // Server has been re-started, retrieve the endpoint returned string
-        if (isWindows()) {
-            Thread.sleep(10000);
-        }
+//        if (isWindows()) {
+//            Thread.sleep(10000);
+//        }
         assertTrue(pollBodyContent(url, expectedNewContent));
 
     }
