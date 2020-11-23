@@ -16,8 +16,6 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,10 +33,7 @@ import org.wildfly.plugins.bootablejar.maven.common.Utils;
  * @author jfdenise
  */
 public abstract class AbstractDevBootableJarMojo extends BuildBootableJarMojo {
-    private static final String DEPLOYMENT_SCANNER_LAYER = "deployment-scanner";
-    private static final String MANAGEMENT_LAYER = "management";
-
-    public static final String DEPLOYMENT_SCANNER_NAME = "wildfly-jar-for-dev-mode";
+    static final String MANAGEMENT_LAYER = "management";
 
     /**
      * Additional JVM options.
@@ -58,23 +53,13 @@ public abstract class AbstractDevBootableJarMojo extends BuildBootableJarMojo {
             getLog().debug(String.format("Skipping run of %s:%s", project.getGroupId(), project.getArtifactId()));
             return;
         }
-        if (Files.exists(getProvisioningFile()) && !hasLayers()) {
-            getLog().warn("Dev mode, can't enforce provisioning of " + DEPLOYMENT_SCANNER_LAYER
-                    + ". Make sure your provisioned configuration contains deployment-scanner subsystem for dev mode to properly operate.");
-        } else {
-            if (getExcludedLayers().contains(DEPLOYMENT_SCANNER_LAYER)) {
-                getLog().warn("Dev mode, removing layer " + DEPLOYMENT_SCANNER_LAYER + " from the list of excluded layers to ensure dev mode can be operated");
-                getExcludedLayers().remove(DEPLOYMENT_SCANNER_LAYER);
-            }
-            getLog().info("Dev mode, adding layer " + DEPLOYMENT_SCANNER_LAYER + " to ensure dev mode can be operated");
-            addExtraLayer(DEPLOYMENT_SCANNER_LAYER);
-            addExtraLayer(MANAGEMENT_LAYER);
-        }
-
+        configureServer();
         hollowJar = true;
         super.execute();
         doExecute();
     }
+
+    protected abstract void configureServer();
 
     protected abstract void doExecute() throws MojoExecutionException, MojoFailureException;
 
@@ -84,26 +69,6 @@ public abstract class AbstractDevBootableJarMojo extends BuildBootableJarMojo {
                 .addJavaOption("-Dorg.jboss.logmanager.nocolor=true")
                 .addJavaOptions(jvmArguments)
                 .addServerArguments(arguments);
-    }
-
-    @Override
-    protected void configureCli(List<String> commands) {
-        super.configureCli(commands);
-        configureScanner(getDeploymentsDir(), commands);
-    }
-
-    private void configureScanner(Path deployments, List<String> commands) {
-        String deploymentPath = deployments.toString().replace("\\", "\\\\");
-        commands.add("if (outcome == success) of /subsystem=deployment-scanner/scanner=default:read-resource()");
-        commands.add("/subsystem=deployment-scanner/scanner=default:remove()");
-        commands.add("end-if");
-        String config = getScannerConfiguration();
-        commands.add("/subsystem=deployment-scanner/scanner=" + DEPLOYMENT_SCANNER_NAME + ":add(path=\""
-                + deploymentPath + "\"" + (config == null ? "" : "," + config) + ")");
-    }
-
-    protected String getScannerConfiguration() {
-        return "auto-deploy-exploded=false";
     }
 
     /**

@@ -87,7 +87,7 @@ class DevWatchContext {
 
         Path getPomFile();
 
-        void scan() throws Exception;
+        void deploy(Path targetDir) throws Exception;
     }
 
     enum Action {
@@ -164,7 +164,7 @@ class DevWatchContext {
         void applyChanges() throws IOException, MojoExecutionException {
             if (compile || redeploy) {
                 ctx.info("[WATCH] updating application");
-                rebuild(false, compile, repackage, redeploy, clean, true);
+                rebuild(false, compile, repackage, redeploy, clean);
             }
         }
 
@@ -338,8 +338,6 @@ class DevWatchContext {
         fileName = fName;
         targetDir = ctx.getDeploymentsDir().resolve(fileName);
 
-        // Register at the root of the project, in case we have resources inside it.
-        // So we support resources only inside the project.
         registerDir(ctx.getBaseDir());
 
         pom = ctx.getPomFile();
@@ -391,10 +389,6 @@ class DevWatchContext {
 
     Path getTargetDirectory() {
         return targetDir;
-    }
-
-    boolean requiresClean(Path absolutePath) {
-        return isJavaFile(absolutePath) || requiresResources(absolutePath) || requiresRePackage(webAppDir);
     }
 
     void fileDeleted(Path absolutePath, Set<Path> paths) {
@@ -510,11 +504,11 @@ class DevWatchContext {
         return handler;
     }
 
-    void build(boolean autoCompile, boolean scan) throws IOException, MojoExecutionException {
-        rebuild(autoCompile, true, true, true, true, scan);
+    void build(boolean autoCompile) throws IOException, MojoExecutionException {
+        rebuild(autoCompile, true, true, true, true);
     }
 
-    private void rebuild(boolean autoCompile, boolean compile, boolean repackage, boolean redeploy, boolean cleanup, boolean scan) throws IOException, MojoExecutionException {
+    private void rebuild(boolean autoCompile, boolean compile, boolean repackage, boolean redeploy, boolean cleanup) throws IOException, MojoExecutionException {
         if (cleanup) {
             ctx.cleanup();
         }
@@ -539,19 +533,8 @@ class DevWatchContext {
         }
         if (redeploy || cleanup) {
             ctx.info("[WATCH] re-deploy");
-            Path failedMarker = ctx.getDeploymentsDir().resolve(fileName + ".failed");
-            if (Files.exists(failedMarker)) {
-                Files.delete(failedMarker);
-            }
-            Path marker = ctx.getDeploymentsDir().resolve(fileName + ".dodeploy");
-            if (Files.notExists(marker)) {
-                Files.createFile(marker);
-            }
             try {
-                // Will be started later. TO REVISIT
-                if (scan) {
-                    ctx.scan();
-                }
+                ctx.deploy(getTargetDirectory());
             } catch (Exception ex) {
                 throw new MojoExecutionException(ex.toString(), ex);
             }

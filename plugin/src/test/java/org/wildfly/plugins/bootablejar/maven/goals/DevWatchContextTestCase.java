@@ -237,7 +237,6 @@ public class DevWatchContextTestCase {
             });
             Assert.assertEquals(1, handler.copied.size());
             Assert.assertEquals(expectedTargetFile, handler.copied.get(newFile));
-            Assert.assertTrue(Files.exists(targetDir.getParent().resolve(targetDir.getFileName() + ".dodeploy")));
             projCtx.reset();
         } finally {
             if (ctx != null) {

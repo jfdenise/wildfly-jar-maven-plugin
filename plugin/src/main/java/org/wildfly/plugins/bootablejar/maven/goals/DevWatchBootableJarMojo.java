@@ -71,7 +71,6 @@ import org.jboss.as.controller.client.helpers.Operations;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.core.ServerHelper;
-import static org.wildfly.plugins.bootablejar.maven.goals.AbstractDevBootableJarMojo.DEPLOYMENT_SCANNER_NAME;
 
 /**
  * Build and start a bootable JAR for dev-watch mode. This goal monitors the
@@ -151,90 +150,90 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
     protected int timeout;
 
     private Process process;
-    private final ScannerController scannerController = new ScannerController();
+    private final DeploymentController deploymentController = new DeploymentController();
 
     // Test specific content to have the process to exit on Windows
     static final String TEST_PROPERTY_EXIT = "dev-watch.test.exit.on.file";
 
-    private class ScannerController {
+    @Override
+    protected void configureServer() {
+        getLog().info("Dev mode, adding layer " + MANAGEMENT_LAYER + " to ensure dev mode can be operated");
+        addExtraLayer(MANAGEMENT_LAYER);
+    }
 
-        private final ModelNode operation;
+    private class DeploymentController {
 
-        ScannerController() {
-            ModelNode address = new ModelNode();
-            address.add("subsystem", "deployment-scanner");
-            address.add("scanner", DEPLOYMENT_SCANNER_NAME);
-            operation = Operations.createOperation("run-scan", address);
-        }
-
-        void scan() throws Exception {
+        void deploy(Path dir) throws Exception {
+            if (process == null) {
+                return;
+            }
+            String name = dir.getFileName().toString();
             try (ModelControllerClient client = ModelControllerClient.Factory.create(hostname, port)) {
                 ServerHelper.waitForStandalone(client, timeout);
-                System.out.println("!!!!!!!!!!!!DEPLOYMENT REQUIRED");
-                // First undeploy
-                undeploy(client, "ROOT.war");
-                waitRemoved(client, "ROOT.war");
-                deploy(client, "ROOT.war");
-                //client.execute(operation);
-                waitStatus(client, "ROOT.war");
+                undeploy(client, name);
+                waitRemoved(client, name);
+                deploy(client, dir);
+                waitDeploymentUp(client, name);
             }
         }
 
         void waitRemoved(ModelControllerClient client, String name) throws Exception {
             ModelNode address = new ModelNode();
             address.add("deployment", name);
-            final ModelNode op = Operations.createOperation("read-resource", address);
-            boolean failed = false;
-            while (!failed) {
-                ModelNode rep = client.execute(op);
-                if ("failed".equals(rep.get("outcome").asString())) {
-                    System.out.println("!!!!!!!!!!!!REMOVED DEPLOYMENT");
-                    failed = true;
-                    break;
-                }
-                Thread.sleep(100);
-            }
+            waitStatus(client, "failed", Operations.createOperation("read-resource", address));
+            getLog().info("Deployment " + name + " removed");
         }
 
-        void waitStatus(ModelControllerClient client, String name) throws Exception {
+        void waitDeploymentUp(ModelControllerClient client, String name) throws Exception {
             ModelNode address = new ModelNode();
             address.add("deployment", name);
-            final ModelNode op = Operations.createOperation("read-resource", address);
-            boolean success = false;
-            while (!success) {
-                ModelNode rep = client.execute(op);
-                if ("success".equals(rep.get("outcome").asString())) {
-                    System.out.println("!!!!!!!!!!!!DEPLOYMENT IS UP");
-                    success = true;
-                    break;
-                }
-                Thread.sleep(100);
-            }
+            waitStatus(client, "success", Operations.createOperation("read-resource", address));
+            getLog().info("Deployment " + name + " is up");
         }
 
         void undeploy(ModelControllerClient client, String name) throws Exception {
+            ModelNode composite = Operations.createCompositeOperation();
+            ModelNode steps = composite.get("steps");
             ModelNode address = new ModelNode();
             address.add("deployment", name);
-            final ModelNode op = Operations.createOperation("remove", address);
-            ServerHelper.waitForStandalone(client, timeout);
-            System.out.println("!!!!!!!!!!!!UNDEPLOY");
-            client.execute(op);
-            System.out.println("!!!!!!!!!!!!UNDEPLOY DONE");
+            steps.add(Operations.createOperation("undeploy", address));
+            steps.add(Operations.createOperation("remove", address));
+            getLog().info("Undeploy " + name);
+            client.execute(composite);
+            getLog().info("Undeploy " + name + " done");
         }
 
-        void deploy(ModelControllerClient client, String name) throws Exception {
+        void deploy(ModelControllerClient client, Path dir) throws Exception {
+            ModelNode composite = Operations.createCompositeOperation();
+            ModelNode steps = composite.get("steps");
             ModelNode address = new ModelNode();
+            String name = dir.getFileName().toString();
             address.add("deployment", name);
             final ModelNode op = Operations.createOperation("add", address);
             ModelNode content = op.get("content").get(0);
-            content.get("path").set(getDeploymentsDir().resolve(name).toAbsolutePath().toString());
+            content.get("path").set(dir.toAbsolutePath().toString());
             content.get("archive").set(false);
-            ServerHelper.waitForStandalone(client, timeout);
-            System.out.println("!!!!!!!!!!!!DEPLOY");
-            client.execute(op);
-            final ModelNode op2 = Operations.createOperation("deploy", address);
-            client.execute(op2);
-            System.out.println("!!!!!!!!!!!!DEPLOY DONE");
+            getLog().info("Deploy " + name);
+            steps.add(op);
+            steps.add(Operations.createOperation("deploy", address));
+            client.execute(composite);
+            getLog().info("Deploy " + name + " done");
+        }
+
+        void waitStatus(ModelControllerClient client, String status, ModelNode op) throws Exception {
+            int t = timeout * 1000;
+            int waitTime = 100;
+            while (t >= 0) {
+                ModelNode rep = client.execute(op);
+                if (status.equals(rep.get("outcome").asString())) {
+                    break;
+                }
+                Thread.sleep(waitTime);
+                t -= waitTime;
+            }
+            if (t <= 0) {
+                throw new MojoExecutionException("Timeout waiting for " + op + " to return " + status + " status");
+            }
         }
     }
 
@@ -380,8 +379,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
         }
 
         @Override
-        public void scan() throws Exception {
-            scannerController.scan();
+        public void deploy(Path dir) throws Exception {
+            deploymentController.deploy(dir);
         }
 
     }
@@ -417,22 +416,15 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     (Xpp3Dom) getPlugin(project).getConfiguration(),
                     Paths.get(projectBuildDir), sourceDir.toPath(), contextRoot, cliSessions, extraServerContentDirs);
             DevWatchContext ctx = new DevWatchContext(projectContext, watcher);
-            ctx.build(true, false);
+            ctx.build(true);
             process = Launcher.of(buildCommandBuilder())
                     .inherit()
                     .launch();
-            // When online an explicit scan is operated.
-            // We start to wait for changes once deployed.
-            scannerController.scan();
+            deploymentController.deploy(ctx.getTargetDirectory());
             watch(watcher, ctx);
         } catch (Exception e) {
             throw new MojoExecutionException(e.getLocalizedMessage(), e);
         }
-    }
-
-    @Override
-    protected String getScannerConfiguration() {
-        return "scan-enabled=false,auto-deploy-exploded=false,auto-deploy-xml=false,auto-deploy-zipped=false";
     }
 
     private void watch(WatchService watcher, DevWatchContext ctx) throws IOException, MojoExecutionException, InterruptedException, MojoFailureException, ProjectBuildingException {
@@ -471,8 +463,11 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                         // We must first stop the server, on Windows platform
                         // we can't rebuild a Bootable JAR whenthe server is running.
                         getLog().info("[WATCH] stopping running bootable JAR");
-                        process.destroy();
-                        process.waitFor();
+                        if (process != null) {
+                            process.destroy();
+                            process.waitFor();
+                            process = null;
+                        }
                         getLog().info("[WATCH] server stopped");
                         // Must rebuild the bootable JAR.
                         System.setProperty(REBUILD_MARKER, "true");
@@ -490,17 +485,17 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                         // can stop the server
 
                         handler = ctx.newEventHandler();
-                        ctx.build(false, false);
+                        ctx.build(false);
                         process = Launcher.of(buildCommandBuilder())
                                 .inherit()
                                 .launch();
-                        scannerController.scan();
+                        deploymentController.deploy(ctx.getTargetDirectory());
                         getLog().info("[WATCH] server re-started");
                     } else {
                         if (handler.reset) {
                             ctx = resetWatcher(watcher, ctx);
                             handler = ctx.newEventHandler();
-                            ctx.build(false, true);
+                            ctx.build(false);
                         } else {
                             handler.applyChanges();
                         }

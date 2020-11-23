@@ -176,7 +176,7 @@ class TestProjectContext implements DevWatchContext.ProjectContext {
     }
 
     @Override
-    public void scan() throws Exception {
+    public void deploy(Path dir) throws Exception {
         // NO OP.
     }
 }

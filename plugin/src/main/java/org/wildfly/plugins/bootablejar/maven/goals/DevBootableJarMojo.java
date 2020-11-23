@@ -16,8 +16,10 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -36,7 +38,9 @@ import org.wildfly.core.launcher.Launcher;
  */
 @Mojo(name = "dev", requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.COMPILE)
 public final class DevBootableJarMojo extends AbstractDevBootableJarMojo {
+    private static final String DEPLOYMENT_SCANNER_LAYER = "deployment-scanner";
 
+    public static final String DEPLOYMENT_SCANNER_NAME = "wildfly-jar-for-dev-mode";
     /**
      * Indicates how {@code stdout} and {@code stderr} should be handled for the server process. A value of
      * {@code inherit} means that the standard output streams are inherited from the current process. Any other value is
@@ -62,5 +66,36 @@ public final class DevBootableJarMojo extends AbstractDevBootableJarMojo {
         } catch (Exception e) {
             throw new MojoExecutionException(e.getLocalizedMessage(), e);
         }
+    }
+
+    @Override
+    protected void configureServer() {
+        if (Files.exists(getProvisioningFile()) && !hasLayers()) {
+            getLog().warn("Dev mode, can't enforce provisioning of " + DEPLOYMENT_SCANNER_LAYER
+                    + ". Make sure your provisioned configuration contains deployment-scanner subsystem for dev mode to properly operate.");
+        } else {
+            if (getExcludedLayers().contains(DEPLOYMENT_SCANNER_LAYER)) {
+                getLog().warn("Dev mode, removing layer " + DEPLOYMENT_SCANNER_LAYER + " from the list of excluded layers to ensure dev mode can be operated");
+                getExcludedLayers().remove(DEPLOYMENT_SCANNER_LAYER);
+            }
+            getLog().info("Dev mode, adding layer " + DEPLOYMENT_SCANNER_LAYER + " to ensure dev mode can be operated");
+            addExtraLayer(DEPLOYMENT_SCANNER_LAYER);
+            addExtraLayer(MANAGEMENT_LAYER);
+        }
+    }
+
+    @Override
+    protected void configureCli(List<String> commands) {
+        super.configureCli(commands);
+        configureScanner(getDeploymentsDir(), commands);
+    }
+
+    private void configureScanner(Path deployments, List<String> commands) {
+        String deploymentPath = deployments.toString().replace("\\", "\\\\");
+        commands.add("if (outcome == success) of /subsystem=deployment-scanner/scanner=default:read-resource()");
+        commands.add("/subsystem=deployment-scanner/scanner=default:remove()");
+        commands.add("end-if");
+        commands.add("/subsystem=deployment-scanner/scanner=" + DEPLOYMENT_SCANNER_NAME + ":add(path=\""
+                + deploymentPath + "\",auto-deploy-exploded=false)");
     }
 }
