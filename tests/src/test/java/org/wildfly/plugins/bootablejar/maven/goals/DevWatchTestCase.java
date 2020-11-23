@@ -46,7 +46,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         String radical = "Hello from ";
         String msg = "WildFly bootable jar!";
         String expectedContent = radical + msg;
-        assertEquals(expectedContent, getBodyContent(url));
+        pollBodyContent(url, expectedContent);
 
 //        if (isWindows()) {
 //            Thread.sleep(5000);
