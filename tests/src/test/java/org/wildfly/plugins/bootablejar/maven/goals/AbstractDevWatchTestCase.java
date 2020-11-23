@@ -141,23 +141,23 @@ public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTe
     @Override
     public void shutdownServer() throws Exception {
         super.shutdownServer();
-        Files.createFile(exitFile);
-        System.out.println("Created exit file, process should exit.");
-//        if (process != null) {
-//            if (retCode != null) {
-//                Exception ex = new Exception("dev-watch goal process not running although it should. Return code " + retCode);
-//                if (processException != null) {
-//                    ex.addSuppressed(processException);
-//                }
-//                throw ex;
-//            }
-//
-//            process.destroy();
-//            goalThread.join();
-//            if (processException != null) {
-//                throw processException;
-//            }
-//        }
+
+        if (process != null) {
+            if (retCode != null) {
+                Exception ex = new Exception("dev-watch goal process not running although it should. Return code " + retCode);
+                if (processException != null) {
+                    ex.addSuppressed(processException);
+                }
+                throw ex;
+            }
+
+            Files.createFile(exitFile);
+            System.out.println("Created exit file, process should exit.");
+            goalThread.join();
+            if (processException != null) {
+                throw processException;
+            }
+        }
     }
 
     boolean logFileContains(String msg) throws IOException {

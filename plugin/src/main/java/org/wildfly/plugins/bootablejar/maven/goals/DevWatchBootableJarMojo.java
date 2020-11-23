@@ -172,8 +172,10 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 ServerHelper.waitForStandalone(client, timeout);
                 undeploy(client, name);
                 waitRemoved(client, name);
-                deploy(client, dir);
-                waitDeploymentUp(client, name);
+                boolean success = deploy(client, dir);
+                if (success) {
+                    waitDeploymentUp(client, name);
+                }
             }
         }
 
@@ -203,7 +205,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             getLog().info("Undeploy " + name + " done");
         }
 
-        void deploy(ModelControllerClient client, Path dir) throws Exception {
+        boolean deploy(ModelControllerClient client, Path dir) throws Exception {
             ModelNode composite = Operations.createCompositeOperation();
             ModelNode steps = composite.get("steps");
             ModelNode address = new ModelNode();
@@ -216,16 +218,17 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             getLog().info("Deploy " + name);
             steps.add(op);
             steps.add(Operations.createOperation("deploy", address));
-            client.execute(composite);
+            ModelNode reply = client.execute(composite);
             getLog().info("Deploy " + name + " done");
+            return "success".equals(reply.get("outcome").asString());
         }
 
         void waitStatus(ModelControllerClient client, String status, ModelNode op) throws Exception {
             int t = timeout * 1000;
             int waitTime = 100;
             while (t >= 0) {
-                ModelNode rep = client.execute(op);
-                if (status.equals(rep.get("outcome").asString())) {
+                ModelNode reply = client.execute(op);
+                if (status.equals(reply.get("outcome").asString())) {
                     break;
                 }
                 Thread.sleep(waitTime);

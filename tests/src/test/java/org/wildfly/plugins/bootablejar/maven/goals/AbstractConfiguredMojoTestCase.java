@@ -18,7 +18,6 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Date;
 import org.apache.maven.DefaultMaven;
 import org.apache.maven.Maven;
 import org.apache.maven.artifact.repository.ArtifactRepositoryPolicy;
@@ -75,8 +74,7 @@ public abstract class AbstractConfiguredMojoTestCase extends AbstractMojoTestCas
                     new DefaultRepositoryLayout(), snapshot, release));
             request.addRemoteRepository(new MavenArtifactRepository("redhat-ga", "https://maven.repository.redhat.com/ga/",
                     new DefaultRepositoryLayout(), snapshot, release));
-            // Required to avoid NPE when doing re-compilation with DevWatch tests.
-            request.setStartTime(new Date());
+
             @SuppressWarnings("deprecation")
             MavenSession session = new MavenSession(getContainer(),
                     repoSession,
@@ -100,8 +98,6 @@ public abstract class AbstractConfiguredMojoTestCase extends AbstractMojoTestCas
         assertTrue(pom.exists());
 
         ProjectBuildingRequest buildingRequest = newMavenSession().getProjectBuildingRequest();
-        // Needed for watched project to compile.
-        buildingRequest.setResolveDependencies(true);
         ProjectBuilder projectBuilder = lookup(ProjectBuilder.class);
         MavenProject project = projectBuilder.build(pom, buildingRequest).getProject();
 
