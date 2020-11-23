@@ -190,6 +190,7 @@ public class DevWatchContextTestCase {
             Assert.assertEquals(2, handler.monitored.size());
             Assert.assertTrue(handler.monitored.contains(newDir1));
             Assert.assertTrue(handler.monitored.toString(), handler.monitored.contains(newDir2));
+            projCtx.reset();
 
             // Add a new file in the new sub directory
             newFile = Files.createFile(newDir2.resolve("index3.html"));
@@ -223,8 +224,8 @@ public class DevWatchContextTestCase {
                 Assert.assertEquals(expectedTargetFile.getParent(), handler.deleted.get(newDir2));
                 Assert.assertEquals(expectedTargetFile.getParent().getParent(), handler.deleted.get(newDir1));
                 Assert.assertFalse(Files.exists(expectedTargetFile));
+                projCtx.reset();
             }
-            projCtx.reset();
 
             // Create an empty file in the WEB-INF directory must re-deploy
             newFile = Files.createFile(project.webinfDir.resolve("web.xml"));
@@ -328,6 +329,7 @@ public class DevWatchContextTestCase {
             Assert.assertEquals(2, handler.monitored.size());
             Assert.assertTrue(handler.monitored.contains(newDir1));
             Assert.assertTrue(handler.monitored.toString(), handler.monitored.contains(newDir2));
+            projCtx.reset();
 
             // Add a new file in the new sub directory
             newFile = Files.createFile(newDir2.resolve("Foo4.java"));
@@ -483,6 +485,7 @@ public class DevWatchContextTestCase {
             Assert.assertEquals(2, handler.monitored.size());
             Assert.assertTrue(handler.monitored.contains(newDir1));
             Assert.assertTrue(handler.monitored.toString(), handler.monitored.contains(newDir2));
+            projCtx.reset();
 
             // Add a new file in the new sub directory
             newFile = Files.createFile(newDir2.resolve("Foo4.java"));
@@ -546,7 +549,7 @@ public class DevWatchContextTestCase {
             Assert.assertTrue(handler.redeploy);
             Assert.assertEquals(1, handler.copied.size());
             expectedTargetFile = targetDir.resolve(project.resourcesDir.relativize(newResourceFile2));
-            Assert.assertEquals(expectedTargetFile, handler.copied.get(newResourceFile2));
+            Assert.assertEquals(handler.copied.toString(), expectedTargetFile, handler.copied.get(newResourceFile2));
             projCtx.reset();
         } finally {
             if (ctx != null) {
@@ -597,6 +600,7 @@ public class DevWatchContextTestCase {
             Assert.assertTrue(handler.copied.isEmpty());
             Assert.assertEquals(1, handler.seenUpdated.size());
             Assert.assertTrue(handler.seenUpdated.contains(project.pomFile));
+            projCtx.reset();
 
         } finally {
             if (ctx != null) {
@@ -656,6 +660,7 @@ public class DevWatchContextTestCase {
             Assert.assertTrue(handler.copied.isEmpty());
             Assert.assertEquals(1, handler.seenUpdated.size());
             Assert.assertTrue(handler.seenUpdated.contains(project.pomFile));
+            projCtx.reset();
 
         } finally {
             if (ctx != null) {
