@@ -291,7 +291,7 @@ public class DevWatchContextTestCase {
             handler = checkEvent(ctx, projCtx, true, true, false, false, true, new Checker() {
                 @Override
                 public boolean isOk(BootableAppEventHandler handler) {
-                    return handler.deleted.size() == 1;
+                    return handler.deleted.size() == 1 && handler.seenUpdated.size() == 1;
                 }
             });
             Assert.assertTrue(handler.redeploy);
