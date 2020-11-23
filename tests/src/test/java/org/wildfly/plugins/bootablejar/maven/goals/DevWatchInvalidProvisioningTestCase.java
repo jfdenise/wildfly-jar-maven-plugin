@@ -31,7 +31,7 @@ public class DevWatchInvalidProvisioningTestCase extends AbstractDevWatchTestCas
     }
 
     @Test
-    public void testDevWatchWeb() throws Exception {
+    public void testDevWInvalidProvisioning() throws Exception {
         startGoal();
         //Thread.sleep(10000);
 

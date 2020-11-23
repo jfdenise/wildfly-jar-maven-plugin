@@ -24,14 +24,14 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DevWatchCliTestCase extends AbstractDevWatchTestCase {
+public class DevWatchExtraTestCase extends AbstractDevWatchTestCase {
 
-    public DevWatchCliTestCase() {
-        super("jaxrs", "DevWatchCli");
+    public DevWatchExtraTestCase() {
+        super("jaxrs", "DevWatchExtra");
     }
 
     @Test
-    public void testCliScript() throws Exception {
+    public void testExtraContent() throws Exception {
         startGoal();
 
         Path targetDir = getTestDir().resolve("target").resolve("deployments").resolve("ROOT.war");
@@ -43,8 +43,10 @@ public class DevWatchCliTestCase extends AbstractDevWatchTestCase {
         String expectedContent = radical + msg;
         pollBodyContent(url, expectedContent);
 
-        Path cliScript = getTestDir().resolve("scripts").resolve("logging.cli");
-        Files.write(cliScript, "".getBytes());
+        Path tmpFile = Files.createTempFile("dev-watch", null);
+        Files.write(tmpFile, "Hello".getBytes());
+        Path extraContent = getTestDir().resolve("extra-content").resolve("myfile.txt");
+        Files.copy(tmpFile, extraContent);
         waitForLogMessage(LOG_REBUILD_JAR, TestEnvironment.getTimeout());
         waitForLogMessage(LOG_SERVER_RESTART, TestEnvironment.getTimeout());
         assertTrue(pollBodyContent(url, expectedContent));
