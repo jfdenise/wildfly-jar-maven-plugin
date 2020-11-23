@@ -90,15 +90,6 @@ class DevWatchContext {
         void deploy(Path targetDir) throws Exception;
     }
 
-    enum Action {
-        CLEAN,
-        COMPILE,
-        REBUILD_BOOTABLE_JAR,
-        RE_DEPLOY,
-        RE_PACKAGE,
-        RESET
-    }
-
     abstract class BootableAppEventHandler {
 
         boolean rebuildBootableJAR;
@@ -114,7 +105,6 @@ class DevWatchContext {
         Set<Path> monitored = new HashSet<>();
         Set<Path> stopMonitored = new HashSet<>();
         Set<Path> seenUpdated = new HashSet<>();
-        Set<Action> actions = new HashSet<>();
 
         public void handle(Kind event, Path absolutePath) throws Exception {
             boolean isDirectory = Files.isDirectory(absolutePath);
@@ -124,12 +114,12 @@ class DevWatchContext {
                 fileDeleted(absolutePath, stopMonitored);
                 Path indep = getInDeploymentPath(absolutePath);
                 if (indep != null) {
-                    ctx.info("[WATCH] Delete file " + indep);
+                    ctx.debug("[WATCH] Delete file " + indep);
                     Files.deleteIfExists(indep);
                     deleted.put(absolutePath, indep);
                     redeploy = true;
                 } else {
-                    ctx.info("[WATCH] Not a deployment file " + absolutePath);
+                    ctx.debug("[WATCH] Not a deployment file " + absolutePath);
                     deleted.put(absolutePath, absolutePath);
                 }
 
@@ -147,7 +137,6 @@ class DevWatchContext {
                             } else {
                                 ctx.info("[WATCH] Reset the watcher.");
                                 reset = true;
-                                actions.add(Action.RESET);
 
                             }
                             seenUpdated.add(absolutePath);
@@ -163,7 +152,7 @@ class DevWatchContext {
 
         void applyChanges() throws IOException, MojoExecutionException {
             if (compile || redeploy) {
-                ctx.info("[WATCH] updating application");
+                ctx.debug("[WATCH] updating application");
                 rebuild(false, compile, repackage, redeploy, clean);
             }
         }
@@ -192,7 +181,7 @@ class DevWatchContext {
                     } else {
                         Path resourcesDir = getResourcesDir(absolutePath);
                         if (resourcesDir != null) {
-                            ctx.info("[WATCH] resources dir updated, need to re-deploy");
+                            ctx.debug("[WATCH] resources dir updated, need to re-deploy");
                             copyInDeployment(absolutePath, getResourcesPath().resolve(resourcesDir.relativize(absolutePath)));
                             redeploy = true;
                             handledLocally = true;
@@ -235,7 +224,7 @@ class DevWatchContext {
 
         void copyInDeployment(Path absolutePath, Path relativePath) throws IOException {
             Path p = toDeploymentPath(absolutePath, relativePath);
-            ctx.info("[WATCH] copy " + absolutePath + " to " + p);
+            ctx.debug("[WATCH] copy " + absolutePath + " to " + p);
             Files.createDirectories(p.getParent());
             Files.copy(absolutePath, p, StandardCopyOption.REPLACE_EXISTING);
             copied.put(absolutePath, p);
@@ -349,7 +338,7 @@ class DevWatchContext {
             // We must add it even if it doesn't exist.
             // That the way to know the resource files in case they are created later.
             resourceDirectories.add(p);
-            ctx.info("[WATCH] resources dir: " + p);
+            ctx.debug("[WATCH] resources dir: " + p);
             if (Files.exists(p)) {
                 registerDir(p);
             }
@@ -391,7 +380,7 @@ class DevWatchContext {
         return targetDir;
     }
 
-    void fileDeleted(Path absolutePath, Set<Path> paths) {
+    private void fileDeleted(Path absolutePath, Set<Path> paths) {
         WatchKey key = null;
         for (Entry<WatchKey, Path> entry : watchedDirectories.entrySet()) {
             if (entry.getValue().equals(absolutePath)) {
@@ -406,26 +395,14 @@ class DevWatchContext {
         }
     }
 
-    boolean isJavaFile(Path absolutePath) {
+    private boolean isJavaFile(Path absolutePath) {
         return absolutePath.startsWith(javaDir) && absolutePath.getFileName().toString().endsWith(".java");
-    }
-
-    boolean requiresResources(Path absolutePath) {
-        return getResourcesDir(absolutePath) != null;
-    }
-
-    boolean requiresRePackage(Path absolutePath) {
-        return absolutePath.startsWith(webAppDir);
-    }
-
-    Path getWebAppRelativeFilre(Path absolutePath) {
-        return webAppDir.relativize(absolutePath);
     }
 
     Path getPath(WatchKey key, Path fileName) {
         Path p = watchedDirectories.get(key);
         if (p == null) {
-            ctx.info("No more watching key, ignoring change done to " + fileName);
+            ctx.debug("No more watching key, ignoring change done to " + fileName);
             return null;
         } else {
             Path resolved = p.resolve(fileName);
@@ -438,7 +415,7 @@ class DevWatchContext {
 
     }
 
-    final Path getResourcesDir(Path p) {
+    private Path getResourcesDir(Path p) {
         for (Path path : resourceDirectories) {
             if (p.startsWith(path)) {
                 return path;
@@ -450,7 +427,7 @@ class DevWatchContext {
         return null;
     }
 
-    final boolean isBootableSpecificFile(Path p) {
+    private boolean isBootableSpecificFile(Path p) {
         if (cliFiles.contains(p)) {
             return true;
         }
@@ -462,17 +439,17 @@ class DevWatchContext {
         return false;
     }
 
-    final void registerDir(Path dir) throws IOException {
+    private void registerDir(Path dir) throws IOException {
         registerDir(dir, null);
     }
 
-    final void registerDir(Path dir, Set<Path> set) throws IOException {
+    private void registerDir(Path dir, Set<Path> set) throws IOException {
         Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 if (!projectBuildDir.equals(dir)) {
                     watchedDirectories.put(dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY), dir);
-                    ctx.info("[WATCH] watching " + dir);
+                    ctx.debug("[WATCH] watching " + dir);
                     if (set != null) {
                         set.add(dir);
                     }
@@ -517,9 +494,7 @@ class DevWatchContext {
         }
         if (repackage || cleanup) {
 
-            ctx.info("[WATCH] re-package");
-            // We first first undeploy
-            //recursiveDelete(ctx.getDeploymentsDir().resolve(fileName));
+            ctx.debug("[WATCH] re-package");
             if (!Files.exists(ctx.getDeploymentsDir())) {
                 Files.createDirectories(ctx.getDeploymentsDir());
             }
@@ -532,63 +507,12 @@ class DevWatchContext {
             }
         }
         if (redeploy || cleanup) {
-            ctx.info("[WATCH] re-deploy");
+            ctx.debug("[WATCH] re-deploy");
             try {
                 ctx.deploy(getTargetDirectory());
             } catch (Exception ex) {
                 throw new MojoExecutionException(ex.toString(), ex);
             }
-        }
-    }
-    public static void recursiveDelete(Path root) {
-        if (root == null || !Files.exists(root)) {
-            return;
-        }
-        try {
-            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                        throws IOException {
-                    try {
-                        System.out.println("DELETING FILE " + file);
-                        Files.delete(file);
-                    } catch (IOException ex) {
-                        System.out.println("ERROR DELETING FILE " + file + "  " + ex);
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException e)
-                        throws IOException {
-                    if (e != null) {
-                        // directory iteration failed
-                        System.out.println("HOHO AN ERROR " + e);
-                        throw e;
-                    }
-                    try {
-                        System.out.println("DELETING FILE " + dir);
-                        Files.delete(dir);
-                    } catch (IOException ex) {
-                        System.out.println("ERROR DELETING dir " + dir + "  " + ex);
-                        Files.list(dir).forEach((p) -> {
-                            System.out.println("child " + p);
-                            if (Files.isDirectory(p)) {
-                                try {
-                                    Files.list(p).forEach((p2) -> {
-                                        System.out.println("child-child " + p2);
-                                    });
-                                } catch (IOException ex1) {
-                                    System.out.println("ERROR " + ex1);
-                                }
-
-                            }
-                        });
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
         }
     }
 }

@@ -183,14 +183,14 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             ModelNode address = new ModelNode();
             address.add("deployment", name);
             waitStatus(client, "failed", Operations.createOperation("read-resource", address));
-            getLog().info("Deployment " + name + " removed");
+            getLog().debug("Deployment " + name + " removed");
         }
 
         void waitDeploymentUp(ModelControllerClient client, String name) throws Exception {
             ModelNode address = new ModelNode();
             address.add("deployment", name);
             waitStatus(client, "success", Operations.createOperation("read-resource", address));
-            getLog().info("Deployment " + name + " is up");
+            getLog().debug("Deployment " + name + " is up");
         }
 
         void undeploy(ModelControllerClient client, String name) throws Exception {
@@ -200,9 +200,9 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             address.add("deployment", name);
             steps.add(Operations.createOperation("undeploy", address));
             steps.add(Operations.createOperation("remove", address));
-            getLog().info("Undeploy " + name);
+            getLog().debug("Undeploy " + name);
             client.execute(composite);
-            getLog().info("Undeploy " + name + " done");
+            getLog().debug("Undeploy " + name + " done");
         }
 
         boolean deploy(ModelControllerClient client, Path dir) throws Exception {
@@ -215,11 +215,11 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             ModelNode content = op.get("content").get(0);
             content.get("path").set(dir.toAbsolutePath().toString());
             content.get("archive").set(false);
-            getLog().info("Deploy " + name);
+            getLog().debug("Deploy " + name);
             steps.add(op);
             steps.add(Operations.createOperation("deploy", address));
             ModelNode reply = client.execute(composite);
-            getLog().info("Deploy " + name + " done");
+            getLog().debug("Deploy " + name + " done");
             return "success".equals(reply.get("outcome").asString());
         }
 
@@ -354,7 +354,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
         @Override
         public final void cleanup() throws MojoExecutionException {
-            getLog().info("[WATCH] clean-up");
+            getLog().debug("[WATCH] clean-up");
             IoUtils.recursiveDelete(getDeploymentsDir());
             cleanClasses(currentProject);
             triggerResources(currentProject);
@@ -365,7 +365,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
             if (autoCompile) {
                 handleAutoCompile(currentProject);
             } else {
-                getLog().info("[WATCH] compile");
+                getLog().debug("[WATCH] compile");
                 triggerCompile(currentProject);
             }
         }
@@ -444,7 +444,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     }
                     @SuppressWarnings("unchecked")
                     WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + ev.context());
+                    getLog().debug("[WATCH] file change [" + ev.kind().name() + "]: " + ev.context());
                     if (exitOnFile != null && exitOnFile.equals(ev.context().getFileName().toString())) {
                         getLog().info("Asked to exit by the test");
                         return;
@@ -453,7 +453,7 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     if (absolutePath == null) {
                         continue;
                     }
-                    getLog().info("[WATCH] file change [" + ev.kind().name() + "]: " + absolutePath);
+                    getLog().debug("[WATCH] file change [" + ev.kind().name() + "]: " + absolutePath);
                     try {
                         handler.handle(ev.kind(), absolutePath);
                     } catch (Exception ex) {
@@ -464,8 +464,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                 try {
                     if (handler.rebuildBootableJAR || mustRebuildJar) {
                         // We must first stop the server, on Windows platform
-                        // we can't rebuild a Bootable JAR whenthe server is running.
-                        getLog().info("[WATCH] stopping running bootable JAR");
+                        // we can't rebuild a Bootable JAR although the server is running.
+                        getLog().info("[WATCH] stopping bootable JAR");
                         if (process != null) {
                             process.destroy();
                             process.waitFor();
@@ -509,9 +509,9 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
                     if (cause instanceof ProvisioningException) {
                         getLog().error(cause.getLocalizedMessage());
                     }
-                    //if (getLog().isDebugEnabled()) {
-                    ex.printStackTrace();
-                    //}
+                    if (getLog().isDebugEnabled()) {
+                        ex.printStackTrace();
+                    }
                 }
                 key.reset();
             }
