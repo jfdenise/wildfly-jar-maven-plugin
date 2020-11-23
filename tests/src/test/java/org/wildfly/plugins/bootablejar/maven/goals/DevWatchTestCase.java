@@ -55,6 +55,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
         System.out.println("[" + expectedStaticContent + "]");
         assertEquals(expectedStaticContent, liveContent);
 
+        Thread.sleep(3000);
         // Update Java file and check for change.
         Path javaFile = getTestDir().resolve("src").resolve("main").resolve("java").
                 resolve("org").resolve("wildfly").resolve("plugins").resolve("demo").resolve("jaxrs").resolve("HelloWorldEndpoint.java");
@@ -66,6 +67,7 @@ public class DevWatchTestCase extends AbstractDevWatchTestCase {
 
         assertTrue(pollBodyContent(url, patchedContent));
 
+        Thread.sleep(3000);
         Path indexFile = getTestDir().resolve("src").resolve("main").resolve("webapp").
                 resolve("index.html");
         String indexStr = new String(Files.readAllBytes(indexFile), "UTF-8");
