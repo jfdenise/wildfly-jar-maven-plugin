@@ -33,7 +33,6 @@ public class DevWatchInvalidProvisioningTestCase extends AbstractDevWatchTestCas
     @Test
     public void testDevWInvalidProvisioning() throws Exception {
         startGoal();
-        //Thread.sleep(10000);
 
         String url = createUrl(TestEnvironment.getHttpPort(), "rest/hello");
         String radical = "Hello from ";
@@ -41,7 +40,6 @@ public class DevWatchInvalidProvisioningTestCase extends AbstractDevWatchTestCas
         String expectedContent = radical + msg;
         pollBodyContent(url, expectedContent);
 
-        //Thread.sleep(5000);
         // Add invalid layer
         String updatedLayers = "<layer>foo</layer>";
         Path pomFile = getTestDir().resolve("pom.xml");
@@ -50,21 +48,15 @@ public class DevWatchInvalidProvisioningTestCase extends AbstractDevWatchTestCas
         Files.write(pomFile, pomContent.getBytes());
         waitForLogMessage("Failed to locate layer [model=standalone name=foo]", TestEnvironment.getTimeout());
 
-        //Thread.sleep(5000);
         // Add a valid layer
         String layer = "<layer>jmx</layer>";
         pomContent = pomContent.replace(updatedLayers, layer);
         Files.write(pomFile, pomContent.getBytes());
 
-        // Thread.sleep(5000);
         waitForLogMessage(LOG_REBUILD_JAR, TestEnvironment.getTimeout());
         waitForLayer(layer, TestEnvironment.getTimeout());
         waitForLogMessage(LOG_SERVER_RESTART, TestEnvironment.getTimeout());
         // Server has been re-started, retrieve the endpoint returned string
-//        if (isWindows()) {
-//            Thread.sleep(10000);
-//        }
-
         assertTrue(pollBodyContent(url, expectedContent));
     }
 }

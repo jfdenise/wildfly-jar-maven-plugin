@@ -41,7 +41,6 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
     @Test
     public void testDevWatchJar() throws Exception {
         startGoal();
-        //Thread.sleep(10000);
 
         // Does not contain extra layers added during the test
         assertFalse(layerExists("jmx"));
@@ -67,9 +66,6 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         Files.write(javaFile, str.getBytes());
 
         waitForLogMessage(radical + currentName1, TestEnvironment.getTimeout());
-        // wait for the previous deployment to terminate, we synchronize on the log
-        // Deployment could be not yet done.
-        //Thread.sleep(2000);
         // Update resources file and check.
         Path ejbJarXml = getTestDir().resolve("src").resolve("main").resolve("resources").
                 resolve("META-INF").resolve("ejb-jar.xml");
@@ -80,9 +76,6 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
         Files.write(ejbJarXml, xmlContent.getBytes());
 
         waitForLogMessage(radical + currentName2, TestEnvironment.getTimeout());
-//        if (isWindows()) {
-//            Thread.sleep(5000);
-//        }
 
         // Add extra layers!
         Path pomFile = getTestDir().resolve("pom.xml");
@@ -102,7 +95,6 @@ public class DevWatchJarTestCase extends AbstractDevWatchTestCase {
 
         waitForLayer(str, TestEnvironment.getTimeout());
         waitForLogMessage(LOG_SERVER_RESTART, TestEnvironment.getTimeout());
-        //Thread.sleep(10000);
         waitForLogMessage(radical + currentName1, TestEnvironment.getTimeout());
     }
 }
