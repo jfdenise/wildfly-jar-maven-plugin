@@ -54,6 +54,10 @@
                      <extra-server-content-dirs>
                         <extra-content>extra-content</extra-content>
                     </extra-server-content-dirs>
+                    <!-- The test requires it in CI-->
+                    <jvmArguments>
+                        <arg>-Dorg.wildfly.logging.skipLogManagerCheck=true</arg>
+                    </jvmArguments>
                 </configuration>
                 <executions>
                     <execution>
