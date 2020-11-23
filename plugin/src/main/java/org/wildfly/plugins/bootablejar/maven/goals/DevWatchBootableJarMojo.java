@@ -833,28 +833,19 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
         Xpp3Dom pluginConfiguration = (Xpp3Dom) plugin.getConfiguration();
         if (pluginConfiguration != null) {
-            //Filter out `test*` configurations
             for (Xpp3Dom child : pluginConfiguration.getChildren()) {
-                if (!child.getName().startsWith("test")) {
-                    // When later the config is merged, the merge is done against the MojoDescriptor config that contains Java Fields.
-                    String camelName = camelize(child.getName());
-                    Xpp3Dom dom = new Xpp3Dom(camelName);
-                    if (child.getValue() != null) {
-                        dom.setValue(child.getValue());
-                    }
-                    for (String attribute : child.getAttributeNames()) {
-                        dom.setAttribute(attribute, child.getAttribute(attribute));
-                    }
-                    // We don't want the default values to be merged in anyway with an existing child.
-                    // I observed parsable but incorrect merge with extra-server-content-dirs that can be defined thanks to a System property.
-                    if (child.getAttribute("combine.self") == null) {
-                        dom.setAttribute("combine.self", "override");
-                    }
-                    for (Xpp3Dom d : child.getChildren()) {
-                        dom.addChild(d);
-                    }
-                    configuration.addChild(dom);
+                String camelName = camelize(child.getName());
+                Xpp3Dom dom = new Xpp3Dom(camelName);
+                if (child.getValue() != null) {
+                    dom.setValue(child.getValue());
                 }
+                for (String attribute : child.getAttributeNames()) {
+                    dom.setAttribute(attribute, child.getAttribute(attribute));
+                }
+                for (Xpp3Dom d : child.getChildren()) {
+                    dom.addChild(d);
+                }
+                configuration.addChild(dom);
             }
         }
 
@@ -867,11 +858,8 @@ public final class DevWatchBootableJarMojo extends AbstractDevBootableJarMojo {
 
         Xpp3Dom pluginConfiguration = (Xpp3Dom) plugin.getConfiguration();
         if (pluginConfiguration != null) {
-            //Filter out `test*` configurations
             for (Xpp3Dom child : pluginConfiguration.getChildren()) {
-                if (!child.getName().startsWith("test")) {
-                    configuration.addChild(child);
-                }
+                configuration.addChild(child);
             }
         }
 
