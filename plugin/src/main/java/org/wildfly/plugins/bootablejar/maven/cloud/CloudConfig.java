@@ -57,8 +57,22 @@ public class CloudConfig {
         "openshift-clustering-script.cli",
         "openshift-webservices-script.cli"};
 
+    private static final String KUBE_PING = "kubernetes.KUBE_PING";
+    private static final String DNS_PING = "dns.DNS_PING";
     //Can be openshift or kubernetes
     String type = OPENSHIFT;
+
+    String jgroupsPingProtocol = KUBE_PING;
+
+    public void setJGroupsPingProtocol(String jgroupsPingProtocol) {
+        this.jgroupsPingProtocol = jgroupsPingProtocol;
+    }
+
+    public String getJGroupsPingProtocol() {
+        return jgroupsPingProtocol;
+    }
+
+    // XXX JFDENISE, do we allow for fixed ping service name???
 
     public boolean getEnableJGroupsPassword() {
         return enableJgroupsPassword;
@@ -120,5 +134,22 @@ public class CloudConfig {
                 commands.addAll(lines);
             }
         }
+        String pingScript = null;
+        if (DNS_PING.equals(jgroupsPingProtocol)) {
+            pingScript = "openshift-clustering-dns-ping-script.cli";
+        } else {
+            if (KUBE_PING.equals(jgroupsPingProtocol)) {
+                pingScript = "openshift-clustering-kube-ping-script.cli";
+            } else {
+                throw new Exception("Unsupported jgroups ping protocol " + jgroupsPingProtocol);
+            }
+        }
+        try (InputStream stream = CloudConfig.class.getResourceAsStream(pingScript)) {
+            List<String> lines
+                    = new BufferedReader(new InputStreamReader(stream,
+                            StandardCharsets.UTF_8)).lines().collect(Collectors.toList());
+            commands.addAll(lines);
+        }
+
     }
 }

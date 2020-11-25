@@ -35,11 +35,3 @@ if (outcome == success) of /subsystem=infinispan/cache-container=web:read-resour
   /subsystem=infinispan/cache-container=web/replicated-cache=repl/component=transaction:add(mode=BATCH
   /subsystem=infinispan/cache-container=web/replicated-cache=repl/store=file:add  
 end-if
-
-if (outcome == success) of /subsystem=jgroups/stack=tcp:read-resource
-  /subsystem=jgroups/stack=tcp/protocol=kubernetes.KUBE_PING:add(add-index=0)
-end-if
-
-if (outcome == success) of /subsystem=jgroups/stack=udp:read-resource
-  /subsystem=jgroups/stack=udp/protocol=kubernetes.KUBE_PING:add(add-index=0)
-end-if

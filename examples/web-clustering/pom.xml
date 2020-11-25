@@ -69,6 +69,50 @@
                 </plugins>
             </build>
         </profile>
+         <profile>
+            <id>openshift-jkube</id>
+            <build>
+                <finalName>${project.artifactId}</finalName>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-jar-maven-plugin</artifactId>
+                        <configuration>
+                            <cloud>
+                                <enable-jgroups-password>true</enable-jgroups-password>
+                                <jgroups-ping-protocol>dns.DNS_PING</jgroups-ping-protocol>
+                            </cloud>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.eclipse.jkube</groupId>
+                        <artifactId>openshift-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>resource</goal>
+                                    <goal>build</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <enricher>
+                                <config>
+                                    <jkube-service>
+                                        <type>NodePort</type>
+                                    </jkube-service>
+                                </config>
+                            </enricher>
+                            <resources>
+                                <env>
+                                    <JGROUPS_CLUSTER_PASSWORD>foo</JGROUPS_CLUSTER_PASSWORD>
+                                </env>
+                            </resources>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
 
