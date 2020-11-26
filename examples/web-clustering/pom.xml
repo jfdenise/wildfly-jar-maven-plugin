@@ -70,7 +70,7 @@
             </build>
         </profile>
          <profile>
-            <id>openshift-jkube</id>
+            <id>openshift-dns</id>
             <build>
                 <finalName>${project.artifactId}</finalName>
                 <plugins>
@@ -87,6 +87,7 @@
                     <plugin>
                         <groupId>org.eclipse.jkube</groupId>
                         <artifactId>openshift-maven-plugin</artifactId>
+                        <version>1.0.2-SNAPSHOT</version>
                         <executions>
                             <execution>
                                 <goals>

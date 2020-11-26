@@ -23,10 +23,10 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DefaultCloudConfigurationTestCase extends AbstractBootableJarMojoTestCase {
+public class DnsPingCloudConfigurationTestCase extends AbstractBootableJarMojoTestCase {
 
-    public DefaultCloudConfigurationTestCase() {
-        super("test13-pom.xml", true, null);
+    public DnsPingCloudConfigurationTestCase() {
+        super("testdns-ping-pom.xml", true, null);
     }
 
     @Test
@@ -34,22 +34,10 @@ public class DefaultCloudConfigurationTestCase extends AbstractBootableJarMojoTe
             throws Exception {
         BuildBootableJarMojo mojo = lookupMojo("package");
         assertNotNull(mojo);
-        assertTrue(mojo.cliSessions.isEmpty());
-        assertTrue(mojo.featurePackLocation.equals(System.getProperty(WILDFLY_FPL)));
-        assertNotNull(mojo.projectBuildDir);
-        assertTrue(mojo.excludedLayers.isEmpty());
-        assertTrue(mojo.layers.isEmpty());
-        assertTrue(mojo.pluginOptions.isEmpty());
-        assertFalse(mojo.hollowJar);
-        assertFalse(mojo.logTime);
-        assertFalse(mojo.offline);
-        assertFalse(mojo.recordState);
-        assertFalse(mojo.skip);
-        assertTrue(mojo.contextRoot);
         mojo.execute();
         final Path dir = getTestDir();
-        checkJar(dir, true, true, null, null, "kubernetes.KUBE_PING",
-                "org.jboss.as.clustering.jgroups", "proxy-address-forwarding=\"true\"", "bindall");
+        checkJar(dir, true, true, null, null, "dns.DNS_PING",
+                "OPENSHIFT_DNS_PING_SERVICE_NAME", "async_discovery_use_separate_thread_per_request");
         checkDeployment(dir, true);
     }
 }
