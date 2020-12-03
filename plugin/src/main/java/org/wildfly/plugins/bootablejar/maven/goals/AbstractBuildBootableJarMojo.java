@@ -81,6 +81,7 @@ import org.jboss.galleon.config.ConfigId;
 import org.jboss.galleon.config.ConfigModel;
 import org.jboss.galleon.config.FeaturePackConfig;
 import org.jboss.galleon.config.ProvisioningConfig;
+import org.jboss.galleon.layout.FeaturePackUpdatePlan;
 import org.jboss.galleon.maven.plugin.util.MavenArtifactRepositoryManager;
 import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.runtime.FeaturePackRuntime;
@@ -214,9 +215,10 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     String featurePackLocation;
 
     /**
-     * List of CLI execution sessions. An embedded server is started for each CLI session.
-     * If a script file is not absolute, it has to be relative to the project base directory.
-     * CLI session are configured in the following way:
+     * List of CLI execution sessions. An embedded server is started for each
+     * CLI session. If a script file is not absolute, it has to be relative to
+     * the project base directory. CLI session are configured in the following
+     * way:
      * <br/>
      * &lt;cli-sessions&gt;<br/>
      * &lt;cli-session&gt;<br/>
@@ -265,16 +267,18 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     List<FeaturePack> featurePacks = Collections.emptyList();
 
     /**
-     * A list of directories to copy content to the provisioned server.
-     * If a directory is not absolute, it has to be relative to the project base directory.
+     * A list of directories to copy content to the provisioned server. If a
+     * directory is not absolute, it has to be relative to the project base
+     * directory.
      */
     @Parameter(alias = "extra-server-content-dirs", property = "wildfly.bootable.package.extra.server.content.dirs")
     List<String> extraServerContentDirs = Collections.emptyList();
 
     /**
-     * The path to the {@code provisioning.xml} file to use. Note that this cannot be used with the {@code feature-packs}
-     * or {@code layers} configuration parameters.
-     * If the provisioning file is not absolute, it has to be relative to the project base directory.
+     * The path to the {@code provisioning.xml} file to use. Note that this
+     * cannot be used with the {@code feature-packs} or {@code layers}
+     * configuration parameters. If the provisioning file is not absolute, it
+     * has to be relative to the project base directory.
      */
     @Parameter(alias = "provisioning-file", property = "wildfly.bootable.provisioning.file", defaultValue = "${project.basedir}/galleon/provisioning.xml")
     private File provisioningFile;
@@ -288,9 +292,8 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
      * '--distribution' option is not needed, System property 'jboss.home.dir'
      * is automatically set to the server that will be packaged in the bootable
      * JAR. If the script file is not absolute, it has to be relative to the
-     * project base directory.
-     * NB: The server is patched with a legacy patch right after the server
-     * has been provisioned with Galleon.
+     * project base directory. NB: The server is patched with a legacy patch
+     * right after the server has been provisioned with Galleon.
      */
     @Parameter(alias = "legacy-patch-cli-script")
     String legacyPatchCliScript;
@@ -311,13 +314,17 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     boolean displayCliScriptsOutput;
 
     /**
-     * Overrides the default {@code logging.properties} the container uses when booting.
+     * Overrides the default {@code logging.properties} the container uses when
+     * booting.
      * <br/>
-     * In most cases this should not be required. The use-case is when the generated {@code logging.properties} causes
-     * boot errors or you do not use the logging subsystem and would like to use a custom logging configuration.
+     * In most cases this should not be required. The use-case is when the
+     * generated {@code logging.properties} causes boot errors or you do not use
+     * the logging subsystem and would like to use a custom logging
+     * configuration.
      * <br/>
-     * An example of a boot error would be using a log4j appender as a {@code custom-handler}.
-     * If the file is not absolute, it has to be relative to the project base directory.
+     * An example of a boot error would be using a log4j appender as a
+     * {@code custom-handler}. If the file is not absolute, it has to be
+     * relative to the project base directory.
      */
     @Parameter(alias = "boot-logging-config", property = "wildfly.bootable.logging.config")
     private File bootLoggingConfig;
@@ -325,22 +332,26 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     /**
      * By default, when building a bootable JAR, the plugin extracts build
      * artifacts in the directory 'bootable-jar-build-artifacts'. You can use
-     * this property to change this directory name. In most cases
-     * this should not be required. The use-case is when building multiple bootable JARs in the same project
-     * on Windows Platform. In this case, each execution should have its own directory, the plugin being
-     * unable to delete the directory due to some references to JBoss module files.
+     * this property to change this directory name. In most cases this should
+     * not be required. The use-case is when building multiple bootable JARs in
+     * the same project on Windows Platform. In this case, each execution should
+     * have its own directory, the plugin being unable to delete the directory
+     * due to some references to JBoss module files.
      */
     @Parameter(alias = "bootable-jar-build-artifacts", property = "wildfly.bootable.jar.build.artifacts", defaultValue = "bootable-jar-build-artifacts")
-    private String bootableJarBuildArtifacts;
+    protected String bootableJarBuildArtifacts;
+
+    @Parameter(alias = "dependencies-update")
+    DependenciesUpdateConfig dependenciesUpdate;
 
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
 
     private final Set<String> extraLayers = new HashSet<>();
 
-    private Path wildflyDir;
+    protected Path wildflyDir;
 
-    private MavenRepoManager artifactResolver;
+    protected MavenRepoManager artifactResolver;
 
     private final Set<Artifact> cliArtifacts = new HashSet<>();
 
@@ -634,7 +645,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                     }
                 }
             }
-            if(!commands.isEmpty()) {
+            if (!commands.isEmpty()) {
                 executeCliScript(wildflyDir, commands, session.getPropertiesFile(),
                         session.getResolveExpression(), session.toString(), startEmbedded);
             }
@@ -849,7 +860,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         return hasLayers ? new LayersFeaturePacksConfig(state) : new DefaultFeaturePacksConfig(provisionedConfigId, state);
     }
 
-    private interface GalleonConfig {
+    protected interface GalleonConfig {
 
         ProvisioningConfig buildConfig() throws ProvisioningException;
     }
@@ -946,6 +957,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
         private LayersFPLConfig() throws ProvisioningDescriptionException {
         }
+
         @Override
         public ProvisioningConfig.Builder buildState() throws ProvisioningException {
             ProvisioningConfig.Builder state = ProvisioningConfig.builder();
@@ -1009,6 +1021,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
      * A config based on a default config retrieved in the FPL.
      */
     private class DefaultFPLConfig extends AbstractDefaultConfig {
+
         private final ConfigId configId;
 
         private DefaultFPLConfig(ConfigId configId) throws ProvisioningException {
@@ -1051,7 +1064,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     }
 
-    private GalleonConfig buildGalleonConfig(ProvisioningManager pm) throws ProvisioningException, MojoExecutionException {
+    protected GalleonConfig buildGalleonConfig(ProvisioningManager pm) throws ProvisioningException, MojoExecutionException {
         boolean isLayerBasedConfig = !layers.isEmpty();
         boolean hasFeaturePack = featurePackLocation != null || !featurePacks.isEmpty();
         boolean hasProvisioningFile = Files.exists(getProvisioningFile());
@@ -1108,18 +1121,39 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                 .setRecordState(recordState)
                 .build()) {
 
-            ProvisioningConfig config = buildGalleonConfig(pm).buildConfig();
+            ProvisioningConfig config = null;
+            DependenciesUpdateUtil.DependenciesState state = null;
+            if (dependenciesUpdate != null) {
+                state = DependenciesUpdateUtil.checkUpdates(this);
+                config = state.getConfig();
+            } else {
+                config = buildGalleonConfig(pm).buildConfig();
+            }
             IoUtils.recursiveDelete(home);
             getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
 
+            ProvisioningRuntime rt = pm.getRuntime(config);
+            if (state != null) {
+                getLog().info("Updating the server:");
+                if (state.getPlans().isEmpty()) {
+                    getLog().warn("No update have been applied.");
+                } else {
+                    for (FeaturePackUpdatePlan p : state.getGlobalPlan().getUpdates()) {
+                        getLog().info("  " + p.getInstalledLocation() + " ==> " + p.getNewLocation());
+                    }
+                    rt.getLayout().apply(state.getGlobalPlan(), pluginOptions);
+                    ProvisioningConfig cf = rt.getLayout().getConfig();
+                    rt.close();
+                    rt = pm.getRuntime(cf);
+                }
+            }
             // store provisioning.xml
-            try(FileWriter writer = new FileWriter(outputProvisioningFile.toFile())) {
+            try (FileWriter writer = new FileWriter(outputProvisioningFile.toFile())) {
                 ProvisioningXmlWriter.getInstance().write(config, writer);
             }
-
-            ProvisioningRuntime rt = pm.getRuntime(config);
             Artifact bootArtifact = null;
             for (FeaturePackRuntime fprt : rt.getFeaturePacks()) {
+                System.out.println("FP " + fprt.getFPID());
                 if (fprt.getPackage(MODULE_ID_JAR_RUNTIME) != null) {
                     // We need to discover GAV of the associated boot.
                     Path artifactProps = fprt.getResource("wildfly/artifact-versions.properties");
@@ -1129,10 +1163,10 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                     } catch (Exception ex) {
                         throw new MojoExecutionException("Error reading artifact versions", ex);
                     }
-                    for(Entry<String,String> entry : propsMap.entrySet()) {
+                    for (Entry<String, String> entry : propsMap.entrySet()) {
                         String value = entry.getValue();
                         Artifact a = getArtifact(value);
-                        if ( BOOT_ARTIFACT_ID.equals(a.getArtifactId())) {
+                        if (BOOT_ARTIFACT_ID.equals(a.getArtifactId())) {
                             // We got it.
                             getLog().info("Found boot artifact " + a + " in " + fprt.getFPID());
                             bootArtifact = a;
