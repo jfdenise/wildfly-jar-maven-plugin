@@ -1,0 +1,15 @@
+if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=http:read-resource
+    echo You have set STATEFULSET_HEADLESS_SERVICE_NAME although http socket-binding is not configured.
+    exit
+  else
+# If we can have a default value, then we define a new system property tha twe set in the cloud extension.
+    /socket-binding-group=standard-sockets/socket-binding=http:list-add(name=client-mappings, value={destination-address="${org.wildfly.bootable.tx.propagation.client-mapping}"})
+# Otherwise that becomes a user action, so we can set it to. So we must make sure that a simple CLI script shouldn't be enough?
+    /socket-binding-group=standard-sockets/socket-binding=http:list-add(name=client-mappings, value={destination-address="${jboss.node.name}.${env.STATEFULSET_HEADLESS_SERVICE_NAME}"})
+  end-if
+  if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=https:read-resource
+    echo You have set STATEFULSET_HEADLESS_SERVICE_NAME although https socket-binding is not configured.
+    exit
+  else
+    /socket-binding-group=standard-sockets/socket-binding=https:list-add(name=client-mappings, value={destination-address="${org.wildfly.bootable.tx.propagation.client-mapping}"})
+  end-if

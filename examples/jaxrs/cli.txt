@@ -1,0 +1,1 @@
+/socket-binding-group=standard-sockets/socket-binding=http:list-add(name=client-mappings, value={destination-address="${jboss.node.name}.${env.STATEFULSET_HEADLESS_SERVICE_NAME}"})

@@ -39,6 +39,8 @@ public class CloudExtension implements RuntimeExtension {
     private static final String KUBERNETES_RESOURCE = "/kubernetes.properties";
     private static final String OPENSHIFT_HOST_NAME_ENV = "HOSTNAME";
     private static final String JBOSS_NODE_NAME_PROPERTY = "jboss.node.name";
+    private static final String TX_PROPAGATION_CLIENT_MAPPING_PROPERTY = "org.wildfly.bootable.tx.propagation.client-mapping";
+    private static final String STATEFULSET_HEADLESS_SERVICE_NAME_ENV = "STATEFULSET_HEADLESS_SERVICE_NAME";
     private static final Path JBOSS_CONTAINER_DIR = Paths.get("/opt/jboss/container");
     private static final Path JBOSS_CONTAINER_BOOTABLE_DIR = JBOSS_CONTAINER_DIR.resolve("wildfly-bootable-jar");
     private static final Path INSTALL_DIR_FILE = JBOSS_CONTAINER_BOOTABLE_DIR.resolve("install-dir");
@@ -81,51 +83,79 @@ public class CloudExtension implements RuntimeExtension {
         }
 
         boolean hasJbossNodeName = false;
+        boolean hasTxPropagationClientMapping = false;
         Set<String> overridingProps = new HashSet<>();
         for (String arg : args) {
             if (arg.startsWith("-D" + JBOSS_NODE_NAME_PROPERTY + "=")) {
                 hasJbossNodeName = true;
             } else {
-                if (arg.startsWith("-D")) {
-                    String prop = null;
-                    int eq = arg.indexOf("=");
-                    if (eq == -1) {
-                        prop = arg.substring(2);
-                    } else {
-                        prop = arg.substring(2, eq);
+                if (arg.startsWith("-D" + TX_PROPAGATION_CLIENT_MAPPING_PROPERTY + "=")) {
+                    hasTxPropagationClientMapping = true;
+                } else {
+                    if (arg.startsWith("-D")) {
+                        String prop = null;
+                        int eq = arg.indexOf("=");
+                        if (eq == -1) {
+                            prop = arg.substring(2);
+                        } else {
+                            prop = arg.substring(2, eq);
+                        }
+                        overridingProps.add(prop);
                     }
-                    overridingProps.add(prop);
                 }
             }
-        }
-        // Set openshift specific properties not redefined
-        for (String p : props.stringPropertyNames()) {
-            if (!overridingProps.contains(p)) {
-                args.add("-D" + p + "=" + props.getProperty(p));
+            // Set openshift specific properties not redefined
+            for (String p : props.stringPropertyNames()) {
+                if (!overridingProps.contains(p)) {
+                    args.add("-D" + p + "=" + props.getProperty(p));
+                }
             }
-        }
 
-        if (!hasJbossNodeName) {
-            String value = System.getProperty(JBOSS_NODE_NAME_PROPERTY);
-            if (value == null) {
+            String originalHostName = hostname;
+            String jbossNodeName = null;
+            if (!hasJbossNodeName) {
+                String value = System.getProperty(JBOSS_NODE_NAME_PROPERTY);
+                if (value == null) {
 
-                if (hostname != null) {
-                    // This is a constraint that breaks the server at startup.
-                    if (hostname.length() > 23) {
-                        String originalHostName = hostname;
-                        StringBuilder builder = new StringBuilder();
-                        char[] chars = hostname.toCharArray();
-                        for (int i = 1; i <= 23; i++) {
-                            char c = chars[hostname.length() - i];
-                            builder.insert(0, c);
+                    if (hostname != null) {
+                        // This is a constraint that breaks the server at startup.
+                        if (hostname.length() > 23) {
+
+                            StringBuilder builder = new StringBuilder();
+                            char[] chars = hostname.toCharArray();
+                            for (int i = 1; i <= 23; i++) {
+                                char c = chars[hostname.length() - i];
+                                builder.insert(0, c);
+                            }
+                            jbossNodeName = builder.toString();
+                            System.out.println("The HOSTNAME env variable used to set "
+                                    + "jboss.node.name is longer than 23 bytes. "
+                                    + "jboss.node.name value was adjusted to 23 bytes long string "
+                                    + jbossNodeName + " from the original value " + originalHostName);
                         }
-                        hostname = builder.toString();
-                        System.out.println("The HOSTNAME env variable used to set "
-                                + "jboss.node.name is longer than 23 bytes. "
-                                + "jboss.node.name value was adjusted to 23 bytes long string "
-                                + hostname + " from the original value " + originalHostName);
+                        args.add("-Djboss.node.name=" + jbossNodeName);
                     }
-                    args.add("-Djboss.node.name=" + hostname);
+                }
+            }
+
+            if (!hasTxPropagationClientMapping) {
+                String value = System.getProperty(TX_PROPAGATION_CLIENT_MAPPING_PROPERTY);
+                if (value == null) {
+                    String headlessServiceName = System.getenv(STATEFULSET_HEADLESS_SERVICE_NAME_ENV);
+                    // We set the default value to the full hostName.
+                    // XXX Is it correct to have such mapping in all cases?
+                    // if that is not the case, we need to make this a user choice when building the bootable JAR.
+                    //
+                    String clientMapping = originalHostName == null ? "" : originalHostName;
+                    if (headlessServiceName != null) {
+                        if (jbossNodeName == null) {
+                            System.err.println("HostName not set, can't properly configure the client-mapping for transaction propagation.");
+                        } else {
+                            clientMapping = jbossNodeName + "." + headlessServiceName;
+                        }
+                    }
+                    // This is added in all cases. In case we don't want that, must have a user option to enable it.
+                    args.add("-D" + TX_PROPAGATION_CLIENT_MAPPING_PROPERTY + "=" + clientMapping);
                 }
             }
         }

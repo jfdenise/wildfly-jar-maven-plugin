@@ -31,9 +31,19 @@
                 <configuration>
                     <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</feature-pack-location>
                     <layers>
-                        <layer>jaxrs</layer>
-                        <layer>management</layer>
+                        <layer>jaxrs-server</layer>
+                        <layer>microprofile-platform</layer>
+                        <layer>web-clustering</layer>
                     </layers>
+                    <cli-sessions>
+                        <cli-session>
+                            <resolve-expressions>false</resolve-expressions>
+                            <script-files>
+                                <script>cli.txt</script>
+                            </script-files>
+                        </cli-session>
+                    </cli-sessions>
+                    <cloud/>
                     <excluded-layers>
                         <layer>deployment-scanner</layer>
                     </excluded-layers>
