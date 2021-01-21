@@ -1,0 +1,51 @@
+if (outcome != success) of /socket-binding-group=standard-sockets/:read-resource
+/socket-binding-group=standard-sockets/:add(default-interface=public,port-offset=${jboss.socket.binding.port-offset:99})
+else
+/socket-binding-group=standard-sockets/:write-attribute(name=default-interface, value=public)
+/socket-binding-group=standard-sockets/:write-attribute(name=port-offset, value=${jboss.socket.binding.port-offset:99})
+end-if
+if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=http/:read-resource
+/socket-binding-group=standard-sockets/socket-binding=http/:add(interface=public)
+else
+/socket-binding-group=standard-sockets/socket-binding=http/:write-attribute(name=interface, value=public)
+end-if
+if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=https/:read-resource
+/socket-binding-group=standard-sockets/socket-binding=https/:add()
+end-if
+if (outcome != success) of /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:read-resource
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:add(host=foo,port=8081)
+else
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:write-attribute(name=host, value=foo)
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:write-attribute(name=port, value=8081)
+end-if
+if (outcome != success) of /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:read-resource
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:add(host=foo2,port=8082)
+else
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:write-attribute(name=host, value=foo2)
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:write-attribute(name=port, value=8082)
+end-if
+if (outcome != success) of /system-property=aaa/:read-resource
+/system-property=aaa/:add(value=foo)
+else
+/system-property=aaa/:write-attribute(name=value, value=foo)
+end-if
+if (outcome != success) of /system-property=bbb/:read-resource
+/system-property=bbb/:add(value=bar)
+else
+/system-property=bbb/:write-attribute(name=value, value=bar)
+end-if
+if (outcome != success) of /subsystem=metrics/:read-resource
+/subsystem=metrics/:add()
+end-if
+if (outcome != success) of /subsystem=ee/:read-resource
+/subsystem=ee/:add(annotation-property-replacement=true,spec-descriptor-property-replacement=true)
+else
+/subsystem=ee/:write-attribute(name=annotation-property-replacement, value=true)
+/subsystem=ee/:write-attribute(name=spec-descriptor-property-replacement, value=true)
+end-if
+if (outcome != success) of /core-service=management/management-interface=http-interface/:read-resource
+/core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true})
+else
+/core-service=management/management-interface=http-interface/:write-attribute(name=console-enabled, value=true)
+/core-service=management/management-interface=http-interface/:write-attribute(name=http-upgrade, value={enabled=true})
+end-if
