@@ -1,0 +1,34 @@
+wildfly-bootable:
+    socket-binding-group:
+        standard-sockets:
+          default-interface: public
+          port-offset: ${jboss.socket.binding.port-offset:99}
+          socket-binding:
+              http:
+                interface: public
+              https:
+          remote-destination-outbound-socket-binding:
+            mail-snmt:  
+              host: foo
+              port: 8081
+            foo2:
+              host: foo2
+              port: 8082
+    system-property:
+      aaa: 
+        value: foo
+      bbb:
+        value: bar
+    subsystem:
+        metrics:
+        ee:
+          annotation-property-replacement: true
+          spec-descriptor-property-replacement: true
+    core-service:
+      management:
+        management-interface:
+          http-interface:
+              console-enabled: true
+              http-upgrade:
+                  enabled: true
+            

@@ -333,6 +333,12 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     @Parameter(alias = "bootable-jar-build-artifacts", property = "wildfly.bootable.jar.build.artifacts", defaultValue = "bootable-jar-build-artifacts")
     private String bootableJarBuildArtifacts;
 
+    /**
+     * Enable yaml config support. True by default.
+     */
+    @Parameter(alias = "enable-yaml-config", property = "wildfly.bootable.jar.enable.yaml.config", defaultValue = "true")
+    protected boolean enableYamlConfig;
+
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
 
@@ -398,7 +404,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
         Artifact bootArtifact;
         try {
-            bootArtifact = provisionServer(wildflyDir, contentDir.resolve("provisioning.xml"));
+            bootArtifact = provisionServer(wildflyDir, contentDir.resolve("provisioning.xml"), contentRoot, contentDir);
         } catch (ProvisioningException | IOException | XMLStreamException ex) {
             throw new MojoExecutionException("Provisioning failed", ex);
         }
@@ -1099,7 +1105,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         throw new ProvisioningException("Invalid Galleon configuration");
     }
 
-    private Artifact provisionServer(Path home, Path outputProvisioningFile) throws ProvisioningException, MojoExecutionException, IOException, XMLStreamException {
+    private Artifact provisionServer(Path home, Path outputProvisioningFile, Path workDir, Path contentDir) throws ProvisioningException, MojoExecutionException, IOException, XMLStreamException {
 
         try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(artifactResolver)
                 .setInstallationHome(home)
@@ -1117,6 +1123,13 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                 ProvisioningXmlWriter.getInstance().write(config, writer);
             }
 
+            if (enableYamlConfig) {
+                try {
+                    GalleonFeatures.store(workDir, contentDir, pm, config);
+                } catch (Exception ex) {
+                    throw new ProvisioningException(ex);
+                }
+            }
             ProvisioningRuntime rt = pm.getRuntime(config);
             Artifact bootArtifact = null;
             for (FeaturePackRuntime fprt : rt.getFeaturePacks()) {
@@ -1281,7 +1294,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         zip(contentDir, jarFile);
     }
 
-    private static void zip(Path contentDir, Path jarFile) throws IOException {
+    static void zip(Path contentDir, Path jarFile) throws IOException {
         try (FileOutputStream fos = new FileOutputStream(jarFile.toFile()); ZipOutputStream zos = new ZipOutputStream(fos)) {
             Files.walkFileTree(contentDir, EnumSet.of(FileVisitOption.FOLLOW_LINKS), 1,
                     new SimpleFileVisitor<Path>() {
