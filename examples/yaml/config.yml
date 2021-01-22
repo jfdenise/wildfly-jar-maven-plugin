@@ -20,6 +20,29 @@ wildfly-bootable:
       bbb:
         value: bar
     subsystem:
+        microprofile-config-smallrye:
+          config-source:
+            foo:
+              dir: 
+                path: /home/jdenise
+              ordinal: 200
+        microprofile-opentracing-smallrye:
+          default-tracer: toto
+          jaeger-tracer:
+            toto:
+              sampler-param: 30.0
+        weld:
+          require-bean-descriptor: true
+        logging:
+          logger:
+            com.foo:
+              level: ALL
+            com.demo:
+              level: WARN
+          root-logger:
+            ROOT:
+              handlers: "[\"CONSOLE\"]"
+              level: INFO
         metrics:
         ee:
           annotation-property-replacement: true
@@ -37,6 +60,31 @@ wildfly-bootable:
                       time: 10
                       unit: SECONDS
         elytron:
+          filesystem-realm:
+            exampleFsRealm:
+              path: fs-realm-users
+              relative-to: jboss.server.config.dir
+          security-domain:
+             exampleSD:
+               realms:
+               - realm: exampleFsRealm 
+               permission-mapper: default-permission-mapper
+               default-realm: exampleFsRealm
+          http-authentication-factory:
+             example-http-auth:
+               http-server-mechanism-factory: global
+               security-domain: exampleSD
+               mechanism-configurations:
+               - mechanism-name: DIGEST
+                 mechanism-realm-configurations:
+                 - realm-name: exampleFsRealm 
+             example-http-auth2:
+               http-server-mechanism-factory: global
+               security-domain: exampleSD
+               mechanism-configurations:
+               - mechanism-name: DIGEST
+                 mechanism-realm-configurations:
+                 - realm-name: exampleFsRealm 
           properties-realm:
             MyApplicationRealm:
               groups-properties:
@@ -68,7 +116,16 @@ wildfly-bootable:
           http-interface:
               console-enabled: true
               http-upgrade:
-                  enabled: true
+                enabled: true
+              constant-headers:
+              - path: /foo
+                headers:
+                - name: foo
+                  value: bar
+              - path: /foo2
+                headers:
+                - name: foo2
+                  value: bar 
         access:
           authorization:
             provider: simple

@@ -34,6 +34,49 @@ if (outcome != success) of /system-property=bbb/:read-resource
 else
 /system-property=bbb/:write-attribute(name=value, value=bar)
 end-if
+if (outcome != success) of /subsystem=microprofile-config-smallrye/:read-resource
+/subsystem=microprofile-config-smallrye/:add()
+end-if
+if (outcome != success) of /subsystem=microprofile-config-smallrye/config-source=foo/:read-resource
+/subsystem=microprofile-config-smallrye/config-source=foo/:add(dir={path=/home/jdenise},ordinal=200)
+else
+/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=dir, value={path=/home/jdenise})
+/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=ordinal, value=200)
+end-if
+if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/:read-resource
+/subsystem=microprofile-opentracing-smallrye/:add(default-tracer=toto)
+else
+/subsystem=microprofile-opentracing-smallrye/:write-attribute(name=default-tracer, value=toto)
+end-if
+if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:read-resource
+/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:add(sampler-param=30.0)
+else
+/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:write-attribute(name=sampler-param, value=30.0)
+end-if
+if (outcome != success) of /subsystem=weld/:read-resource
+/subsystem=weld/:add(require-bean-descriptor=true)
+else
+/subsystem=weld/:write-attribute(name=require-bean-descriptor, value=true)
+end-if
+if (outcome != success) of /subsystem=logging/:read-resource
+/subsystem=logging/:add()
+end-if
+if (outcome != success) of /subsystem=logging/logger=com.foo/:read-resource
+/subsystem=logging/logger=com.foo/:add(level=ALL)
+else
+/subsystem=logging/logger=com.foo/:write-attribute(name=level, value=ALL)
+end-if
+if (outcome != success) of /subsystem=logging/logger=com.demo/:read-resource
+/subsystem=logging/logger=com.demo/:add(level=WARN)
+else
+/subsystem=logging/logger=com.demo/:write-attribute(name=level, value=WARN)
+end-if
+if (outcome != success) of /subsystem=logging/root-logger=ROOT/:read-resource
+/subsystem=logging/root-logger=ROOT/:add(handlers=["CONSOLE"],level=INFO)
+else
+/subsystem=logging/root-logger=ROOT/:write-attribute(name=handlers, value=["CONSOLE"])
+/subsystem=logging/root-logger=ROOT/:write-attribute(name=level, value=INFO)
+end-if
 if (outcome != success) of /subsystem=metrics/:read-resource
 /subsystem=metrics/:add()
 end-if
@@ -62,6 +105,33 @@ end-if
 if (outcome != success) of /subsystem=elytron/:read-resource
 /subsystem=elytron/:add()
 end-if
+if (outcome != success) of /subsystem=elytron/filesystem-realm=exampleFsRealm/:read-resource
+/subsystem=elytron/filesystem-realm=exampleFsRealm/:add(path=fs-realm-users,relative-to=jboss.server.config.dir)
+else
+/subsystem=elytron/filesystem-realm=exampleFsRealm/:write-attribute(name=path, value=fs-realm-users)
+/subsystem=elytron/filesystem-realm=exampleFsRealm/:write-attribute(name=relative-to, value=jboss.server.config.dir)
+end-if
+if (outcome != success) of /subsystem=elytron/security-domain=exampleSD/:read-resource
+/subsystem=elytron/security-domain=exampleSD/:add(realms=[{realm=exampleFsRealm}],permission-mapper=default-permission-mapper,default-realm=exampleFsRealm)
+else
+/subsystem=elytron/security-domain=exampleSD/:write-attribute(name=permission-mapper, value=default-permission-mapper)
+/subsystem=elytron/security-domain=exampleSD/:write-attribute(name=default-realm, value=exampleFsRealm)
+/subsystem=elytron/security-domain=exampleSD/:list-add(name=realms, value={realm=exampleFsRealm})
+end-if
+if (outcome != success) of /subsystem=elytron/http-authentication-factory=example-http-auth/:read-resource
+/subsystem=elytron/http-authentication-factory=example-http-auth/:add(http-server-mechanism-factory=global,security-domain=exampleSD,mechanism-configurations=[{mechanism-name=DIGEST, mechanism-realm-configurations=[{realm-name=exampleFsRealm}]}])
+else
+/subsystem=elytron/http-authentication-factory=example-http-auth/:write-attribute(name=http-server-mechanism-factory, value=global)
+/subsystem=elytron/http-authentication-factory=example-http-auth/:write-attribute(name=security-domain, value=exampleSD)
+/subsystem=elytron/http-authentication-factory=example-http-auth/:list-add(name=mechanism-configurations, value={mechanism-name=DIGEST, mechanism-realm-configurations=[{realm-name=exampleFsRealm}]})
+end-if
+if (outcome != success) of /subsystem=elytron/http-authentication-factory=example-http-auth2/:read-resource
+/subsystem=elytron/http-authentication-factory=example-http-auth2/:add(http-server-mechanism-factory=global,security-domain=exampleSD,mechanism-configurations=[{mechanism-name=DIGEST, mechanism-realm-configurations=[{realm-name=exampleFsRealm}]}])
+else
+/subsystem=elytron/http-authentication-factory=example-http-auth2/:write-attribute(name=http-server-mechanism-factory, value=global)
+/subsystem=elytron/http-authentication-factory=example-http-auth2/:write-attribute(name=security-domain, value=exampleSD)
+/subsystem=elytron/http-authentication-factory=example-http-auth2/:list-add(name=mechanism-configurations, value={mechanism-name=DIGEST, mechanism-realm-configurations=[{realm-name=exampleFsRealm}]})
+end-if
 if (outcome != success) of /subsystem=elytron/properties-realm=MyApplicationRealm/:read-resource
 /subsystem=elytron/properties-realm=MyApplicationRealm/:add(groups-properties={path=application-roles.properties, relative-to=jboss.server.config.dir},users-properties={path=application-users.properties, relative-to=jboss.server.config.dir})
 else
@@ -81,10 +151,12 @@ else
 /subsystem=elytron/permission-set=my-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
 end-if
 if (outcome != success) of /core-service=management/management-interface=http-interface/:read-resource
-/core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true})
+/core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true},constant-headers=[{path=/foo, headers=[{name=foo, value=bar}]}, {path=/foo2, headers=[{name=foo2, value=bar}]}])
 else
 /core-service=management/management-interface=http-interface/:write-attribute(name=console-enabled, value=true)
 /core-service=management/management-interface=http-interface/:write-attribute(name=http-upgrade, value={enabled=true})
+/core-service=management/management-interface=http-interface/:list-add(name=constant-headers, value={path=/foo, headers=[{name=foo, value=bar}]})
+/core-service=management/management-interface=http-interface/:list-add(name=constant-headers, value={path=/foo2, headers=[{name=foo2, value=bar}]})
 end-if
 /core-service=management/access=authorization/:write-attribute(name=provider, value=simple)
 /core-service=management/access=authorization/:write-attribute(name=use-identity-roles, value=true)
