@@ -43,9 +43,37 @@ else
 /subsystem=ee/:write-attribute(name=annotation-property-replacement, value=true)
 /subsystem=ee/:write-attribute(name=spec-descriptor-property-replacement, value=true)
 end-if
+if (outcome != success) of /subsystem=jca/:read-resource
+/subsystem=jca/:add()
+end-if
+if (outcome != success) of /subsystem=jca/workmanager=foo/:read-resource
+/subsystem=jca/workmanager=foo/:add(name=foo)
+else
+/subsystem=jca/workmanager=foo/:write-attribute(name=name, value=foo)
+end-if
+if (outcome != success) of /subsystem=jca/workmanager=foo/short-running-threads=foo-short/:read-resource
+/subsystem=jca/workmanager=foo/short-running-threads=foo-short/:add(core-threads=50,max-threads=50,queue-length=50,keepalive-time={time=10, unit=SECONDS})
+else
+/subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=core-threads, value=50)
+/subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=max-threads, value=50)
+/subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=queue-length, value=50)
+/subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=keepalive-time, value={time=10, unit=SECONDS})
+end-if
+if (outcome != success) of /subsystem=elytron/:read-resource
+/subsystem=elytron/:add()
+end-if
+if (outcome != success) of /subsystem=elytron/properties-realm=MyApplicationRealm/:read-resource
+/subsystem=elytron/properties-realm=MyApplicationRealm/:add(groups-properties={path=application-roles.properties, relative-to=jboss.server.config.dir},users-properties={path=application-users.properties, relative-to=jboss.server.config.dir})
+else
+/subsystem=elytron/properties-realm=MyApplicationRealm/:write-attribute(name=groups-properties, value={path=application-roles.properties, relative-to=jboss.server.config.dir})
+/subsystem=elytron/properties-realm=MyApplicationRealm/:write-attribute(name=users-properties, value={path=application-users.properties, relative-to=jboss.server.config.dir})
+end-if
 if (outcome != success) of /core-service=management/management-interface=http-interface/:read-resource
 /core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true})
 else
 /core-service=management/management-interface=http-interface/:write-attribute(name=console-enabled, value=true)
 /core-service=management/management-interface=http-interface/:write-attribute(name=http-upgrade, value={enabled=true})
 end-if
+/core-service=management/access=authorization/:write-attribute(name=provider, value=simple)
+/core-service=management/access=authorization/:write-attribute(name=use-identity-roles, value=true)
+/core-service=management/access=authorization/constraint=application-classification/type=logging/classification=logger/:write-attribute(name=configured-application, value=true)

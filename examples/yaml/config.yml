@@ -24,6 +24,27 @@ wildfly-bootable:
         ee:
           annotation-property-replacement: true
           spec-descriptor-property-replacement: true
+        jca:
+          workmanager:
+            foo:
+                name: foo
+                short-running-threads:
+                  foo-short:
+                    core-threads: 50
+                    max-threads: 50
+                    queue-length: 50
+                    keepalive-time:
+                      time: 10
+                      unit: SECONDS
+        elytron:
+          properties-realm:
+            MyApplicationRealm:
+              groups-properties:
+                path: application-roles.properties
+                relative-to: jboss.server.config.dir
+              users-properties:
+                path: application-users.properties
+                relative-to: jboss.server.config.dir
     core-service:
       management:
         management-interface:
@@ -31,4 +52,15 @@ wildfly-bootable:
               console-enabled: true
               http-upgrade:
                   enabled: true
+        access:
+          authorization:
+            provider: simple
+            use-identity-roles: true
+            constraint:
+              application-classification:
+                type:
+                  logging:
+                    classification:
+                      logger:
+                        configured-application: true
             
