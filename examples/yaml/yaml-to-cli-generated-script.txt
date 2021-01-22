@@ -68,6 +68,18 @@ else
 /subsystem=elytron/properties-realm=MyApplicationRealm/:write-attribute(name=groups-properties, value={path=application-roles.properties, relative-to=jboss.server.config.dir})
 /subsystem=elytron/properties-realm=MyApplicationRealm/:write-attribute(name=users-properties, value={path=application-users.properties, relative-to=jboss.server.config.dir})
 end-if
+if (outcome != success) of /subsystem=elytron/permission-set=default-permissions/:read-resource
+/subsystem=elytron/permission-set=default-permissions/:add(permissions=[{class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*}, {class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*}])
+else
+/subsystem=elytron/permission-set=default-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
+/subsystem=elytron/permission-set=default-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
+end-if
+if (outcome != success) of /subsystem=elytron/permission-set=my-permissions/:read-resource
+/subsystem=elytron/permission-set=my-permissions/:add(permissions=[{class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*}, {class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*}])
+else
+/subsystem=elytron/permission-set=my-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
+/subsystem=elytron/permission-set=my-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
+end-if
 if (outcome != success) of /core-service=management/management-interface=http-interface/:read-resource
 /core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true})
 else

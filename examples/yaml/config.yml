@@ -45,6 +45,23 @@ wildfly-bootable:
               users-properties:
                 path: application-users.properties
                 relative-to: jboss.server.config.dir
+          permission-set:
+           default-permissions: 
+             permissions:
+             - class-name: org.wildfly.transaction.client.RemoteTransactionPermission
+               module: org.wildfly.transaction.client
+               target-name: "*"
+             - class-name: org.wildfly.transaction.client.RemoteTransactionPermission
+               module: org.wildfly.transaction.client
+               target-name: "*"
+           my-permissions:
+             permissions:
+             - class-name: org.wildfly.transaction.client.RemoteTransactionPermission
+               module: org.wildfly.transaction.client
+               target-name: "*"
+             - class-name: org.wildfly.transaction.client.RemoteTransactionPermission
+               module: org.wildfly.transaction.client
+               target-name: "*"
     core-service:
       management:
         management-interface:
