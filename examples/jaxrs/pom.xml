@@ -20,6 +20,11 @@
             <artifactId>jakarta.jakartaee-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.undertow</groupId>
+            <artifactId>undertow-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -29,7 +34,23 @@
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
                 <configuration>
-                    <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</feature-pack-location>
+                    <overriden-artifacts>
+                        <artifact>
+                            <groupId>org.jboss.modules</groupId>
+                            <artifactId>jboss-modules</artifactId>
+                            <version>1.10.0.Final</version>
+                        </artifact>
+                        <artifact>
+                            <groupId>io.undertow</groupId>
+                            <artifactId>undertow-core</artifactId>
+                        </artifact>
+                        <artifact>
+                            <groupId>org.jboss.xnio</groupId>
+                            <artifactId>xnio-nio</artifactId>
+                            <version>3.8.2.Final</version>
+                        </artifact>
+                    </overriden-artifacts>
+                    <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#23.0.0.Beta1-SNAPSHOT</feature-pack-location>
                     <layers>
                         <layer>jaxrs</layer>
                         <layer>management</layer>

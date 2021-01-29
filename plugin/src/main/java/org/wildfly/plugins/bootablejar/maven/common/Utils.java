@@ -26,7 +26,9 @@ import java.util.regex.Pattern;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.jboss.galleon.ProvisioningException;
 import org.wildfly.plugins.bootablejar.maven.goals.BuildBootableJarMojo;
+import org.wildfly.plugins.bootablejar.maven.goals.MavenProjectArtifactVersions;
 
 /**
  * @author jdenise
@@ -68,4 +70,37 @@ public class Utils {
         return args;
     }
 
+    public static String toOptionValue(List<OverridenArtifact> lst, MavenProjectArtifactVersions versions) throws ProvisioningException {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < lst.size(); i++) {
+            OverridenArtifact artifact = lst.get(i);
+            if (artifact.getVersion() == null) {
+                artifact.setVersion(versions.getVersion(artifact));
+            }
+            validate(artifact);
+            builder.append(artifact.getGroupId()).append(":").append(artifact.getArtifactId()).
+                    append(":").append(artifact.getVersion()).append(":");
+            String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
+            builder.append(classifier).append(":").append(artifact.getType());
+            if (i < lst.size() - 1) {
+                builder.append("|");
+            }
+        }
+        return builder.toString();
+    }
+
+    private static void validate(OverridenArtifact artifact) throws ProvisioningException {
+        if (artifact.getGroupId() == null) {
+            throw new ProvisioningException("No groupId set for overriden artifact");
+        }
+        if (artifact.getArtifactId() == null) {
+            throw new ProvisioningException("No artifactId set for overriden artifact");
+        }
+        if (artifact.getVersion() == null) {
+            throw new ProvisioningException("No version set for overriden artifact");
+        }
+        if (artifact.getType() == null) {
+            throw new ProvisioningException("No type set for overriden artifact");
+        }
+    }
 }

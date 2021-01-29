@@ -101,6 +101,8 @@ import org.wildfly.plugins.bootablejar.maven.cli.RemoteCLIExecutor;
 import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.LegacyPatchCleaner;
 import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
+import org.wildfly.plugins.bootablejar.maven.common.OverridenArtifact;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -333,6 +335,14 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     @Parameter(alias = "bootable-jar-build-artifacts", property = "wildfly.bootable.jar.build.artifacts", defaultValue = "bootable-jar-build-artifacts")
     private String bootableJarBuildArtifacts;
 
+    /**
+     * A list of artifacts that override the one in the provisioned server.
+     */
+    @Parameter(alias = "overriden-artifacts", property = "wildfly.bootable.package.overriden.artifacts")
+    List<OverridenArtifact> overridenArtifacts = Collections.emptyList();
+
+    MavenProjectArtifactVersions artifactVersions;
+
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
 
@@ -367,6 +377,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             outputFileName = this.project.getBuild().getFinalName() + "-" + BOOTABLE_SUFFIX + "." + JAR;
         }
 
+        artifactVersions = MavenProjectArtifactVersions.getInstance(project);
         validateProjectFile();
 
         if (isPackageDev()) {
@@ -873,13 +884,13 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
         protected final ConfigModel.Builder configBuilder;
 
-        AbstractGalleonConfig(ConfigModel.Builder configBuilder) {
+        AbstractGalleonConfig(ConfigModel.Builder configBuilder) throws ProvisioningException {
             Objects.requireNonNull(configBuilder);
             this.configBuilder = configBuilder;
             setupPluginOptions();
         }
 
-        private void setupPluginOptions() {
+        private void setupPluginOptions() throws ProvisioningException {
             // passive+ in all cases
             // For included default config not based on layers, default packages
             // must be included.
@@ -898,6 +909,11 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                             path = project.getBasedir().toPath().resolve(path);
                             pluginOptions.put(MAVEN_REPO_PLUGIN_OPTION, path.toString());
                         }
+                    }
+                }
+                if (!overridenArtifacts.isEmpty()) {
+                    if (!pluginOptions.containsKey("jboss-overriden-artifacts")) {
+                        pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(overridenArtifacts, artifactVersions));
                     }
                 }
             }
@@ -921,7 +937,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
      */
     private abstract class AbstractLayersConfig extends AbstractGalleonConfig {
 
-        public AbstractLayersConfig() throws ProvisioningDescriptionException {
+        public AbstractLayersConfig() throws ProvisioningDescriptionException, ProvisioningException {
             super(ConfigModel.builder(STANDALONE, STANDALONE_XML));
             for (String layer : layers) {
                 configBuilder.includeLayer(layer);
@@ -944,7 +960,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
      */
     private class LayersFPLConfig extends AbstractLayersConfig {
 
-        private LayersFPLConfig() throws ProvisioningDescriptionException {
+        private LayersFPLConfig() throws ProvisioningDescriptionException, ProvisioningException {
         }
         @Override
         public ProvisioningConfig.Builder buildState() throws ProvisioningException {
@@ -965,7 +981,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
         private final ProvisioningConfig.Builder state;
 
-        private LayersFeaturePacksConfig(ProvisioningConfig.Builder state) throws ProvisioningDescriptionException {
+        private LayersFeaturePacksConfig(ProvisioningConfig.Builder state) throws ProvisioningDescriptionException, ProvisioningException {
             this.state = state;
         }
 
