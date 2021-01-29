@@ -31,6 +31,24 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-ee-galleon-pack</artifactId>
+                <!-- for now BOM doesn't contain EAP feature-pack -->
+                <version>7.4.1.Final-redhat-00001</version>
+                <scope>runtime</scope>
+                <!-- zip is mandatory for feature-pack -->
+                <type>zip</type>
+            </dependency>
+            <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-galleon-pack</artifactId>
+                <!-- for now BOM doesn't contain XP feature-pack -->
+                <version>3.0.0.GA-redhat-00001-Final</version>
+                <scope>runtime</scope>
+                <!-- zip is mandatory for feature-pack -->
+                <type>zip</type>
+            </dependency>
+            <dependency>
                 <groupId>jakarta.platform</groupId>
                 <artifactId>jakarta.jakartaee-api</artifactId>
                 <version>8.0.0</version>

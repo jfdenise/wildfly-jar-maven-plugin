@@ -13,6 +13,9 @@
 
     <name>WildFly Bootable JAR - JAX-RS Example</name>
     <description>An example of how to use JAX-RS resources</description>
+    
+    <!-- Pre-requisites, the EAP 7.4.1 BOM and XP 3.0.0 have been set in dependenciesManagement of parent pom.xml -->
+    <!-- They contain Galleon feature-pack zip artifacts versions -->
 
     <dependencies>
         <dependency>
@@ -20,6 +23,55 @@
             <artifactId>jakarta.jakartaee-api</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Server dependencies we want to override -->
+        
+        <!-- Patched undertow upgrade --> 
+        <dependency>
+            <groupId>io.undertow</groupId>
+            <artifactId>undertow-core</artifactId>
+            <version>2.2.3.SP1-redhat-00001</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- EAP upgrade, version can come from EAP 7.4.1 runtime BOM -->
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-ee-galleon-pack</artifactId>
+            <type>zip</type>
+        </dependency>
+        
+        <!-- postgresql driver upgrade -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.8</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- Version can come from XP3 runtime BOM file. That is the XP galleon-feature-pack we depend on.  -->
+        <!-- Not mandatory, just to retrieve the version that becomes optional in the plugin -->
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-galleon-pack</artifactId>
+            <type>zip</type>
+        </dependency>
+
+        <!-- Other feature-packs we are provisioning, they could be in dependenciesManagement -->
+        <!-- Not mandatory, just to retrieve the version that becomes optional in the plugin -->        
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-adapter-galleon-pack</artifactId>
+            <version>13.0.10</version>
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-datasources-galleon-pack</artifactId>
+            <version>1.2.1.Final-SNAPSHOT</version>
+            <type>zip</type>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -29,17 +81,47 @@
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
                 <configuration>
-                    <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</feature-pack-location>
+                    <feature-packs>
+                        <!-- A bunch of feature-packs XP, SSO and Datasources -->
+                        <feature-pack>
+                            <!-- XP -->
+                            <groupId>org.wildfly</groupId>
+                            <artifactId>wildfly-galleon-pack</artifactId>
+                        </feature-pack>
+                        <feature-pack>
+                            <!-- SSO -->
+                            <groupId>org.keycloak</groupId>
+                            <artifactId>keycloak-adapter-galleon-pack</artifactId>
+                        </feature-pack>
+                        <feature-pack>
+                            <!-- datasources -->
+                            <groupId>org.wildfly</groupId>
+                            <artifactId>wildfly-datasources-galleon-pack</artifactId>
+                        </feature-pack>
+                    </feature-packs>
                     <layers>
-                        <layer>jaxrs</layer>
-                        <layer>management</layer>
+                        <layer>jaxrs-server</layer>
+                        <layer>postgresql-datasource</layer>
+                        <layer>keycloak-client-oidc</layer>
                     </layers>
-                    <excluded-layers>
-                        <layer>deployment-scanner</layer>
-                    </excluded-layers>
-                    <plugin-options>
-                        <jboss-fork-embedded>${plugin.fork.embedded}</jboss-fork-embedded>
-                    </plugin-options>
+                    <!-- We list the set of artifacts we want to see replaced during provisioning -->
+                    <overriden-server-artifacts>
+                        <!-- undertow core -->
+                        <artifact>
+                            <groupId>io.undertow</groupId>
+                            <artifactId>undertow-core</artifactId>
+                        </artifact>
+                        <!-- EAP feature-pack -->
+                        <artifact>
+                            <groupId>org.wildfly</groupId>
+                            <artifactId>wildfly-ee-galleon-pack</artifactId>
+                        </artifact>
+                        <!-- postgresql driver -->
+                        <artifact>
+                            <groupId>org.postgresql</groupId>
+                            <artifactId>postgresql</artifactId>
+                        </artifact>
+                    </overriden-server-artifacts>
                 </configuration>
                 <executions>
                     <execution>
