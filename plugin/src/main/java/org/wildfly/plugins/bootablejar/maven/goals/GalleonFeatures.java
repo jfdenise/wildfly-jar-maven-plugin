@@ -44,6 +44,9 @@ public class GalleonFeatures {
         try (ProvisioningLayout<FeaturePackLayout> pl = pm.getLayoutFactory().newConfigLayout(config)) {
             for (FeaturePackLayout fl : pl.getOrderedFeaturePacks()) {
                 Path feat = fl.getDir().resolve("features");
+                if (!Files.exists(feat)) {
+                    continue;
+                }
                 Files.walk(feat).forEach((f) -> {
                     if ("spec.xml".equals(f.getFileName().toString())) {
                         String name = f.getParent().getFileName().toString();
