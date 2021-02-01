@@ -341,6 +341,12 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     @Parameter(alias = "overriden-artifacts", property = "wildfly.bootable.package.overriden.artifacts")
     List<OverridenArtifact> overridenArtifacts = Collections.emptyList();
 
+    /**
+     * Use Maven project dependencies to override server artifacts.
+     */
+    @Parameter(alias = "use-maven-dependencies", property = "wildfly.bootable.package.use.maven.dependencies", defaultValue = "false")
+    boolean useMavenDependencies;
+
     MavenProjectArtifactVersions artifactVersions;
 
     @Inject
@@ -913,7 +919,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                 }
                 if (!overridenArtifacts.isEmpty()) {
                     if (!pluginOptions.containsKey("jboss-overriden-artifacts")) {
-                        pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(overridenArtifacts, artifactVersions));
+                        pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(overridenArtifacts, artifactVersions, useMavenDependencies));
                     }
                 }
             }

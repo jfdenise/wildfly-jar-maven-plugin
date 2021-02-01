@@ -20,7 +20,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,22 +72,35 @@ public class Utils {
         return args;
     }
 
-    public static String toOptionValue(List<OverridenArtifact> lst, MavenProjectArtifactVersions versions) throws ProvisioningException {
+    public static String toOptionValue(List<OverridenArtifact> lst, MavenProjectArtifactVersions versions, boolean mavenDependencies) throws ProvisioningException {
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < lst.size(); i++) {
-            OverridenArtifact artifact = lst.get(i);
-            if (artifact.getVersion() == null) {
-                artifact.setVersion(versions.getVersion(artifact));
+        Map<String, String> map = versions.getArtifacts();
+        if (mavenDependencies) {
+            Iterator<String> keys = map.keySet().iterator();
+            while (keys.hasNext()) {
+                String k = keys.next();
+                builder.append(map.get(k));
+                if (keys.hasNext()) {
+                    builder.append("|");
+                }
             }
-            validate(artifact);
-            builder.append(artifact.getGroupId()).append(":").append(artifact.getArtifactId()).
-                    append(":").append(artifact.getVersion()).append(":");
-            String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
-            builder.append(classifier).append(":").append(artifact.getType());
-            if (i < lst.size() - 1) {
-                builder.append("|");
+        } else {
+            for (int i = 0; i < lst.size(); i++) {
+                OverridenArtifact artifact = lst.get(i);
+                if (artifact.getVersion() == null) {
+                    artifact.setVersion(versions.getVersion(artifact));
+                }
+                validate(artifact);
+                builder.append(artifact.getGroupId()).append(":").append(artifact.getArtifactId()).
+                        append(":").append(artifact.getVersion()).append(":");
+                String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
+                builder.append(classifier).append(":").append(artifact.getType());
+                if (i < lst.size() - 1) {
+                    builder.append("|");
+                }
             }
         }
+
         return builder.toString();
     }
 

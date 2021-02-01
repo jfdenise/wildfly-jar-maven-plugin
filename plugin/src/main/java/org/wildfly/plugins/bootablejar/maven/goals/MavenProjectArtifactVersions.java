@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -32,6 +33,7 @@ public final class MavenProjectArtifactVersions {
         return new MavenProjectArtifactVersions(project);
     }
 
+    private final Map<String, String> coords = new TreeMap<>();
     private final Map<String, String> versions = new TreeMap<>();
 
     private MavenProjectArtifactVersions(MavenProject project) {
@@ -43,21 +45,37 @@ public final class MavenProjectArtifactVersions {
         }
     }
 
+    public Map<String, String> getArtifacts() {
+        return Collections.unmodifiableMap(coords);
+    }
+
+    public String getArtifactCoords(OverridenArtifact artifact) {
+        return coords.get(getKey(artifact));
+    }
+
     public String getVersion(OverridenArtifact artifact) {
+        return versions.get(getKey(artifact));
+    }
+
+    private static String getKey(OverridenArtifact artifact) {
         final StringBuilder buf = new StringBuilder(artifact.getGroupId()).append(':').
                 append(artifact.getArtifactId());
         if (artifact.getClassifier() != null && !artifact.getClassifier().isEmpty()) {
             buf.append("::").append(artifact.getClassifier());
         }
-        return versions.get(buf.toString());
+        return buf.toString();
     }
 
     private void put(final String groupId, final String artifactId, final String classifier, final String version, final String type) {
         final StringBuilder buf = new StringBuilder(groupId).append(':').
                 append(artifactId);
+        final StringBuilder versionClassifier = new StringBuilder(buf);
+        versionClassifier.append(':').append(version).append(':');
         if (classifier != null && !classifier.isEmpty()) {
             buf.append("::").append(classifier);
+            versionClassifier.append(classifier);
         }
+        coords.put(buf.toString(), versionClassifier.append(':').append(type).toString());
         versions.put(buf.toString(), version);
     }
 }
