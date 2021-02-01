@@ -35,7 +35,7 @@ import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
  *
  * @author jfdenise
  */
-@Mojo(name = "check-dependencies-update", requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.INITIALIZE)
+@Mojo(name = "check-feature-pack-dependencies-update", requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.INITIALIZE)
 public class CheckDependenciesUpdatesBootableJarMojo extends AbstractBuildBootableJarMojo {
 
     @Override
@@ -51,17 +51,17 @@ public class CheckDependenciesUpdatesBootableJarMojo extends AbstractBuildBootab
         try {
             DependenciesUpdateUtil.DependenciesState state = DependenciesUpdateUtil.checkUpdates(this);
             if (state.getPlans().isEmpty()) {
-                getLog().info("No update available.");
+                logUpdate("No updates available.", false);
             } else {
                 for (Entry<FeaturePackLocation.ProducerSpec, ProvisioningPlan> entry : state.getPlans().entrySet()) {
                     ProvisioningPlan plan = entry.getValue();
                     FeaturePackLocation.ProducerSpec producer = entry.getKey();
                     if (plan.isEmpty()) {
-                        getLog().info("No update available for " + producer);
+                        logUpdate("No updates available for " + producer, false);
                     } else {
-                        getLog().info("Updates exist for " + producer);
+                        logUpdate("Updates exist:", false);
                         for (FeaturePackUpdatePlan p : plan.getUpdates()) {
-                            getLog().info("  " + p.getInstalledLocation() + " ==> " + p.getNewLocation());
+                            logUpdate(p.getInstalledLocation() + " ==> " + p.getNewLocation(), false);
                         }
                     }
                 }

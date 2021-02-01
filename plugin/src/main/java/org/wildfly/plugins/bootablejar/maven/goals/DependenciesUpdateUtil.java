@@ -34,6 +34,8 @@ import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.FeaturePackConfig;
 import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.layout.ProvisioningLayout;
+import org.jboss.galleon.universe.Channel;
+import org.jboss.galleon.universe.FeaturePackLocation;
 import org.jboss.galleon.universe.FeaturePackLocation.ProducerSpec;
 
 /**
@@ -72,7 +74,8 @@ class DependenciesUpdateUtil {
             throws MojoExecutionException, IOException, ProvisioningException {
         Map<ProducerSpec, ProvisioningPlan> plans = new HashMap<>();
         Path home = Files.createTempDirectory("wildfly-bootable-jar-update");
-        DependenciesUpdateConfig actualUpdate = mojo.dependenciesUpdate == null ? new DependenciesUpdateConfig() : mojo.dependenciesUpdate;
+        DependenciesUpdateConfig actualUpdate = mojo.featurePackDependenciesUpdate == null
+                ? new DependenciesUpdateConfig() : mojo.featurePackDependenciesUpdate;
         home.toFile().deleteOnExit();
         ProvisioningConfig config;
         Set<FeaturePackUpdatePlan> updates = new HashSet<>();
@@ -88,14 +91,32 @@ class DependenciesUpdateUtil {
                 List<FeaturePackUpdatePlan> toUpdate = new ArrayList<>();
                 List<String> updated = new ArrayList<>();
                 for (FeaturePackConfig fpc : config.getFeaturePackDeps()) {
-                    if (actualUpdate.getProducers().isEmpty() || actualUpdate.getProducers().contains(fpc.getLocation().getProducer().toString())) {
-                        ProvisioningPlan plan = layout.getUpdates(fpc.getLocation().getProducer());
-                        updated.add(fpc.getLocation().getProducer().toString());
+                    FeaturePackLocation location = fpc.getLocation();
+                    if (location.getUniverse() == null || location.getUniverse().getLocation() == null) {
+                        // Can't be updated.
+                        continue;
+                    }
+                    mojo.logUpdate("Checking updates for " + location, false);
+                    Channel channel = pm.getLayoutFactory().getUniverseResolver().getChannel(location);
+                    String latestBuild = channel.getLatestBuild(location);
+                    // No build, advertise the latest version
+                    if (!location.hasBuild()) {
+                        mojo.logUpdate("Latest version of " + location + " is " + latestBuild, false);
+                    } else {
+                        // Check that the current build is the latest one.
+                        if (!location.getBuild().equals(latestBuild)) {
+                            mojo.logUpdate("You must upgrade to the latest release: " + latestBuild + " of "
+                                    + location.getProducer() + " to be able to upgrade.", true);
+                        }
+                    }
+                    if (actualUpdate.getProducers().isEmpty() || actualUpdate.getProducers().contains(location.getProducer().toString())) {
+                        ProvisioningPlan plan = layout.getUpdates(location.getProducer());
+                        updated.add(location.getProducer().toString());
                         if (plan.isEmpty()) {
                             // Phase 2 we can check for update for dependencies
                             ProvisioningPlan p = layout.getUpdates(true);
                             updates.addAll(p.getUpdates());
-                            plans.put(fpc.getLocation().getProducer(), p);
+                            plans.put(location.getProducer(), p);
                         } else {
                             toUpdate.addAll(plan.getUpdates());
                         }
@@ -103,8 +124,8 @@ class DependenciesUpdateUtil {
                 }
                 if (!toUpdate.isEmpty()) {
                     StringBuilder builder = new StringBuilder();
-                    builder.append("Some of the feature-packs in use are not updated "
-                            + " to the latest version, you must first update your pom.xml file to reference:\n");
+                    builder.append("Update failed. Some of the Galleon feature-packs are not updated "
+                            + "to the latest version, you must first upgrade:\n");
                     for (FeaturePackUpdatePlan p : toUpdate) {
                         builder.append(p.getInstalledLocation() + "==>" + p.getNewLocation());
                     }
@@ -116,7 +137,7 @@ class DependenciesUpdateUtil {
                         if (ex == null) {
                             ex = new StringBuilder();
                         }
-                        ex.append("Producer " + f + " not found in the set of producers to update\n");
+                        ex.append("[UPDATE] Producer " + f + " not found in the set of producers to update\n");
                     }
                 }
                 if (ex != null) {

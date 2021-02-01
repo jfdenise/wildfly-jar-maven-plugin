@@ -341,8 +341,11 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     @Parameter(alias = "bootable-jar-build-artifacts", property = "wildfly.bootable.jar.build.artifacts", defaultValue = "bootable-jar-build-artifacts")
     protected String bootableJarBuildArtifacts;
 
-    @Parameter(alias = "dependencies-update")
-    DependenciesUpdateConfig dependenciesUpdate;
+    /**
+     * Enable automatic update of the feature-pack dependencies.
+     */
+    @Parameter(alias = "feature-pack-dependencies-update")
+    DependenciesUpdateConfig featurePackDependenciesUpdate;
 
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
@@ -1123,7 +1126,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
             ProvisioningConfig config = null;
             DependenciesUpdateUtil.DependenciesState state = null;
-            if (dependenciesUpdate != null) {
+            if (featurePackDependenciesUpdate != null) {
                 state = DependenciesUpdateUtil.checkUpdates(this);
                 config = state.getConfig();
             } else {
@@ -1134,9 +1137,9 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
             ProvisioningRuntime rt = pm.getRuntime(config);
             if (state != null) {
-                getLog().info("Updating the server:");
+                logUpdate("Updating the server:", false);
                 if (state.getPlans().isEmpty()) {
-                    getLog().warn("No update have been applied.");
+                    logUpdate("No update have been applied.", true);
                 } else {
                     for (FeaturePackUpdatePlan p : state.getGlobalPlan().getUpdates()) {
                         getLog().info("  " + p.getInstalledLocation() + " ==> " + p.getNewLocation());
@@ -1153,7 +1156,6 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             }
             Artifact bootArtifact = null;
             for (FeaturePackRuntime fprt : rt.getFeaturePacks()) {
-                System.out.println("FP " + fprt.getFPID());
                 if (fprt.getPackage(MODULE_ID_JAR_RUNTIME) != null) {
                     // We need to discover GAV of the associated boot.
                     Path artifactProps = fprt.getResource("wildfly/artifact-versions.properties");
@@ -1251,6 +1253,15 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             }
             pm.provision(rt.getLayout());
             return bootArtifact;
+        }
+    }
+
+    protected void logUpdate(String msg, boolean warn) {
+        msg = "[UPDATE] " + msg;
+        if (warn) {
+            getLog().warn(msg);
+        } else {
+            getLog().info(msg);
         }
     }
 
