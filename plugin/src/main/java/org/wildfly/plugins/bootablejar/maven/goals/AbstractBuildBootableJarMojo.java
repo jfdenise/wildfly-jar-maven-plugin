@@ -338,13 +338,16 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     /**
      * A list of artifacts that override the one in the provisioned server.
      */
-    @Parameter(alias = "overriden-artifacts", property = "wildfly.bootable.package.overriden.artifacts")
-    List<OverridenArtifact> overridenArtifacts = Collections.emptyList();
+    @Parameter(alias = "dependencies", property = "wildfly.bootable.package.dependencies")
+    List<OverridenArtifact> dependencies = Collections.emptyList();
 
     MavenProjectArtifactVersions artifactVersions;
 
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
+
+    private final List<OverridenArtifact> featurePackDependencies = new ArrayList<>();
+    private final List<OverridenArtifact> artifactDependencies = new ArrayList<>();
 
     private final Set<String> extraLayers = new HashSet<>();
 
@@ -804,13 +807,37 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                     && fp.getNormalizedPath() == null) {
                 throw new MojoExecutionException("Feature-pack location, Maven GAV or feature pack path is missing");
             }
-
+            if (fp.getLocation() == null) {
+                if (fp.getVersion() == null) {
+                    String version = artifactVersions.getFPVersion(fp.getGroupId(), fp.getArtifactId(), fp.getClassifier());
+                    if (version == null) {
+                        throw new MojoExecutionException("No version for feature-pack " + fp);
+                    }
+                    fp.setVersion(version);
+                }
+            } else {
+                FeaturePackLocation fpl = FeaturePackLocation.fromString(fp.getLocation());
+                if (fpl.getUniverse() == null || fpl.getUniverse().getLocation() == null) {
+                    if (!fpl.hasBuild()) {
+                        String[] coords = fp.getLocation().split(":");
+                        if (coords.length < 2) {
+                            throw new MojoExecutionException("Invalid feature-pack coordinates for " + fp);
+                        }
+                        String version = artifactVersions.getFPVersion(coords[0], coords[1], null);
+                        if (version == null) {
+                            throw new MojoExecutionException("No version for feature-pack " + fp);
+                        }
+                        fp.setLocation(fp.getLocation() + ":" + version);
+                    }
+                }
+            }
             final FeaturePackLocation fpl;
             if (fp.getNormalizedPath() != null) {
                 fpl = pm.getLayoutFactory().addLocal(fp.getNormalizedPath(), false);
             } else if (fp.getGroupId() != null && fp.getArtifactId() != null) {
-                Path path = resolveMaven(fp);
-                fpl = pm.getLayoutFactory().addLocal(path, false);
+                StringBuilder str = new StringBuilder();
+                str.append(fp.getGroupId()).append(":").append(fp.getArtifactId()).append(":").append(fp.getVersion());
+                fpl = FeaturePackLocation.fromString(str.toString());
             } else {
                 fpl = FeaturePackLocation.fromString(fp.getLocation());
             }
@@ -895,8 +922,8 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             // For included default config not based on layers, default packages
             // must be included.
             if (pluginOptions.isEmpty()) {
-                pluginOptions = Collections.
-                        singletonMap(Constants.OPTIONAL_PACKAGES, Constants.PASSIVE_PLUS);
+                pluginOptions = new HashMap<>();
+                pluginOptions.put(Constants.OPTIONAL_PACKAGES, Constants.PASSIVE_PLUS);
             } else {
                 if (!pluginOptions.containsKey(Constants.OPTIONAL_PACKAGES)) {
                     pluginOptions.put(Constants.OPTIONAL_PACKAGES, Constants.PASSIVE_PLUS);
@@ -911,10 +938,10 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                         }
                     }
                 }
-                if (!overridenArtifacts.isEmpty()) {
-                    if (!pluginOptions.containsKey("jboss-overriden-artifacts")) {
-                        pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(overridenArtifacts, artifactVersions));
-                    }
+            }
+            if (!artifactDependencies.isEmpty()) {
+                if (!pluginOptions.containsKey("jboss-overriden-artifacts")) {
+                    pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(artifactDependencies, artifactVersions));
                 }
             }
         }
@@ -1124,7 +1151,27 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                 .setRecordState(recordState)
                 .build()) {
 
+            // Must separate dependencies
+            // XXX TODO Can we do better than that?
+            // Yes lookup actual dependencies of FP
+            for (OverridenArtifact a : dependencies) {
+                // Is it a feature-pack
+                String fpVers = artifactVersions.getFPVersion(a.getGroupId(), a.getArtifactId(), a.getClassifier());
+                if (fpVers == null) {
+                    artifactDependencies.add(a);
+                } else {
+                    a.setVersion(fpVers);
+                    featurePackDependencies.add(a);
+                }
+            }
             ProvisioningConfig config = buildGalleonConfig(pm).buildConfig();
+            ProvisioningConfig.Builder c = ProvisioningConfig.builder(config);
+            for (OverridenArtifact a : featurePackDependencies) {
+                FeaturePackLocation fpl = FeaturePackLocation.fromString(a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion());
+                c.addTransitiveDep(fpl);
+            }
+            config = c.build();
+            // Handle
             IoUtils.recursiveDelete(home);
             getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
 
