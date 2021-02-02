@@ -345,7 +345,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
      * Enable automatic update of the feature-pack dependencies.
      */
     @Parameter(alias = "feature-pack-dependencies-update")
-    DependenciesUpdateConfig featurePackDependenciesUpdate;
+    DependenciesUpdateConfig featurePackDependenciesUpdate = new DependenciesUpdateConfig();
 
     @Inject
     private BootLoggingConfiguration bootLoggingConfiguration;
@@ -798,7 +798,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         return excludedLayers;
     }
 
-    private GalleonConfig buildFeaturePacksConfig(ProvisioningManager pm, boolean hasLayers) throws ProvisioningException, MojoExecutionException {
+    private GalleonConfig buildFeaturePacksConfig(ProvisioningManager pm, boolean hasLayers, boolean log) throws ProvisioningException, MojoExecutionException {
         ProvisioningConfig.Builder state = ProvisioningConfig.builder();
         ConfigId provisionedConfigId = null;
         for (FeaturePack fp : featurePacks) {
@@ -856,9 +856,13 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             state.addFeaturePackDep(fpConfig.build());
         }
         if (hasLayers) {
-            getLog().info("Provisioning server configuration based on the set of configured layers");
+            if (log) {
+                getLog().info("Provisioning server configuration based on the set of configured layers");
+            }
         } else {
-            getLog().info("Provisioning server configuration based on the " + provisionedConfigId.getName() + " default configuration.");
+            if (log) {
+                getLog().info("Provisioning server configuration based on the " + provisionedConfigId.getName() + " default configuration.");
+            }
         }
         return hasLayers ? new LayersFeaturePacksConfig(state) : new DefaultFeaturePacksConfig(provisionedConfigId, state);
     }
@@ -1067,7 +1071,8 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     }
 
-    protected GalleonConfig buildGalleonConfig(ProvisioningManager pm) throws ProvisioningException, MojoExecutionException {
+    // Turn off log when building config for update
+    protected GalleonConfig buildGalleonConfig(ProvisioningManager pm, boolean log) throws ProvisioningException, MojoExecutionException {
         boolean isLayerBasedConfig = !layers.isEmpty();
         boolean hasFeaturePack = featurePackLocation != null || !featurePacks.isEmpty();
         boolean hasProvisioningFile = Files.exists(getProvisioningFile());
@@ -1081,7 +1086,9 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
 
         if (hasFeaturePack && hasProvisioningFile) {
-            getLog().warn("Feature packs defined in pom.xml override provisioning file located in " + getProvisioningFile());
+            if (log) {
+                getLog().warn("Feature packs defined in pom.xml override provisioning file located in " + getProvisioningFile());
+            }
         }
 
         if (isLayerBasedConfig) {
@@ -1089,27 +1096,37 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                 throw new ProvisioningException("No server feature-pack location to provision layers, you must set a feature-pack-location");
             }
             if (featurePackLocation == null) {
-                getLog().info("Provisioning server using feature-packs");
-                return buildFeaturePacksConfig(pm, true);
+                if (log) {
+                    getLog().info("Provisioning server using feature-packs");
+                }
+                return buildFeaturePacksConfig(pm, true, log);
             } else {
-                getLog().info("Provisioning server configuration based on the set of configured layers");
+                if (log) {
+                    getLog().info("Provisioning server configuration based on the set of configured layers");
+                }
                 return new LayersFPLConfig();
             }
         }
 
         if (featurePackLocation != null) {
             ConfigId defaultConfig = getDefaultConfig();
-            getLog().info("Provisioning server configuration based on the " + defaultConfig.getName() + " default configuration");
+            if (log) {
+                getLog().info("Provisioning server configuration based on the " + defaultConfig.getName() + " default configuration");
+            }
             return new DefaultFPLConfig(defaultConfig);
         }
 
         if (!featurePacks.isEmpty()) {
-            getLog().info("Provisioning server using feature-packs");
-            return buildFeaturePacksConfig(pm, isLayerBasedConfig);
+            if (log) {
+                getLog().info("Provisioning server using feature-packs");
+            }
+            return buildFeaturePacksConfig(pm, isLayerBasedConfig, log);
         }
 
         if (hasProvisioningFile) {
-            getLog().info("Provisioning server using " + getProvisioningFile());
+            if (log) {
+                getLog().info("Provisioning server using " + getProvisioningFile());
+            }
             return new ProvisioningFileConfig();
         }
         throw new ProvisioningException("Invalid Galleon configuration");
@@ -1126,21 +1143,23 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
 
             ProvisioningConfig config = null;
             DependenciesUpdateUtil.DependenciesState state = null;
-            if (featurePackDependenciesUpdate != null) {
-                state = DependenciesUpdateUtil.checkUpdates(this);
+            if (featurePackDependenciesUpdate.isEnabled()) {
+                state = DependenciesUpdateUtil.checkUpdates(this, true);
                 config = state.getConfig();
-            } else {
-                config = buildGalleonConfig(pm).buildConfig();
+            }
+            if (config == null) {
+                config = buildGalleonConfig(pm, true).buildConfig();
             }
             IoUtils.recursiveDelete(home);
-            getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
 
             ProvisioningRuntime rt = pm.getRuntime(config);
             if (state != null) {
-                logUpdate("Updating the server:", false);
-                if (state.getPlans().isEmpty()) {
-                    logUpdate("No update have been applied.", true);
+                if (state.isDisabled()) {
+                    // Updates are ignored.
+                } else if (state.getGlobalPlan().getUpdates().isEmpty()) {
+                    logUpdate("No update have been found.", true);
                 } else {
+                    logUpdate("Updating the server with the following new dependencies:", false);
                     for (FeaturePackUpdatePlan p : state.getGlobalPlan().getUpdates()) {
                         getLog().info("  " + p.getInstalledLocation() + " ==> " + p.getNewLocation());
                     }
@@ -1150,9 +1169,10 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                     rt = pm.getRuntime(cf);
                 }
             }
+            getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
             // store provisioning.xml
             try (FileWriter writer = new FileWriter(outputProvisioningFile.toFile())) {
-                ProvisioningXmlWriter.getInstance().write(config, writer);
+                ProvisioningXmlWriter.getInstance().write(rt.getProvisioningConfig(), writer);
             }
             Artifact bootArtifact = null;
             for (FeaturePackRuntime fprt : rt.getFeaturePacks()) {

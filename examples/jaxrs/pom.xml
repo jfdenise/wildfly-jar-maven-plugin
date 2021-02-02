@@ -30,18 +30,17 @@
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
                 <configuration>
                     <feature-pack-dependencies-update>
-                       <producers>
-                            <!--<producer>eap-mp@maven(org.jboss.universe:product-universe)</producer>-->
-                        </producers>
+                       <!--<producers>
+                            <producer>sso@maven(org.jboss.universe:product-universe)</producer>
+                             <producer>eap-mp@maven(org.jboss.universe:product-universe)</producer>
+                        </producers>-->
                     </feature-pack-dependencies-update>
                     <feature-packs>
                         <feature-pack>
                             <location>eap-mp@maven(org.jboss.universe:product-universe):3</location>
                         </feature-pack>
                         <feature-pack>
-                            <groupId>org.keycloak</groupId>
-                            <artifactId>keycloak-adapter-galleon-pack</artifactId>
-                            <version>13.0.0-SNAPSHOT</version>
+                            <location>sso@maven(org.jboss.universe:product-universe):13</location>
                         </feature-pack>
                     </feature-packs>
                     <layers>

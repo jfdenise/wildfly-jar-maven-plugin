@@ -25,7 +25,17 @@ import java.util.List;
  */
 public class DependenciesUpdateConfig {
 
+    private boolean enabled = true;
+
     private List<String> producers = Collections.emptyList();
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
 
     public void setProducers(List<String> producerSpecs) {
         this.producers = producerSpecs;

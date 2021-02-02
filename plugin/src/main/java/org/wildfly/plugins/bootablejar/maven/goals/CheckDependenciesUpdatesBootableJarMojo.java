@@ -17,17 +17,13 @@
 package org.wildfly.plugins.bootablejar.maven.goals;
 
 import java.io.IOException;
-import java.util.Map.Entry;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.jboss.galleon.ProvisioningException;
-import org.jboss.galleon.layout.ProvisioningPlan;
-import org.jboss.galleon.layout.FeaturePackUpdatePlan;
 import org.jboss.galleon.maven.plugin.util.MavenArtifactRepositoryManager;
-import org.jboss.galleon.universe.FeaturePackLocation;
 import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
 
 /**
@@ -49,22 +45,11 @@ public class CheckDependenciesUpdatesBootableJarMojo extends AbstractBuildBootab
         artifactResolver = offline ? new MavenArtifactRepositoryManager(repoSystem, repoSession)
                 : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
         try {
-            DependenciesUpdateUtil.DependenciesState state = DependenciesUpdateUtil.checkUpdates(this);
-            if (state.getPlans().isEmpty()) {
+            DependenciesUpdateUtil.DependenciesState state = DependenciesUpdateUtil.checkUpdates(this, false);
+            if (state.isDisabled()) {
+                // The current config can't be updated, ignoring.
+            } else if (state.getPlans().isEmpty()) {
                 logUpdate("No updates available.", false);
-            } else {
-                for (Entry<FeaturePackLocation.ProducerSpec, ProvisioningPlan> entry : state.getPlans().entrySet()) {
-                    ProvisioningPlan plan = entry.getValue();
-                    FeaturePackLocation.ProducerSpec producer = entry.getKey();
-                    if (plan.isEmpty()) {
-                        logUpdate("No updates available for " + producer, false);
-                    } else {
-                        logUpdate("Updates exist:", false);
-                        for (FeaturePackUpdatePlan p : plan.getUpdates()) {
-                            logUpdate(p.getInstalledLocation() + " ==> " + p.getNewLocation(), false);
-                        }
-                    }
-                }
             }
         } catch (IOException | ProvisioningException ex) {
             throw new MojoExecutionException(ex.toString(), ex);
