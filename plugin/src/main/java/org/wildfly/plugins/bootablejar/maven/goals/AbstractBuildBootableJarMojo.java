@@ -102,7 +102,6 @@ import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.LegacyPatchCleaner;
 import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
 import org.wildfly.plugins.bootablejar.maven.common.OverridenArtifact;
-import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -338,8 +337,8 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
     /**
      * A list of artifacts that override the one in the provisioned server.
      */
-    @Parameter(alias = "overriden-artifacts", property = "wildfly.bootable.package.overriden.artifacts")
-    List<OverridenArtifact> overridenArtifacts = Collections.emptyList();
+    @Parameter(alias = "overriden-server-artifacts", property = "wildfly.bootable.package.overriden.server.artifacts")
+    List<OverridenArtifact> overridenServerArtifacts = Collections.emptyList();
 
     MavenProjectArtifactVersions artifactVersions;
 
@@ -911,11 +910,6 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
                         }
                     }
                 }
-                if (!overridenArtifacts.isEmpty()) {
-                    if (!pluginOptions.containsKey("jboss-overriden-artifacts")) {
-                        pluginOptions.put("jboss-overriden-artifacts", Utils.toOptionValue(overridenArtifacts, artifactVersions));
-                    }
-                }
             }
         }
 
@@ -1084,6 +1078,25 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             getLog().warn("Feature packs defined in pom.xml override provisioning file located in " + getProvisioningFile());
         }
 
+        // Retrieve versions from Maven in case versions not set.
+        if (featurePackLocation != null) {
+            featurePackLocation = MavenUpgrade.locationWithVersion(featurePackLocation, artifactVersions);
+        } else {
+            for (FeaturePack fp : featurePacks) {
+                if (fp.getLocation() != null) {
+                    fp.setLocation(MavenUpgrade.locationWithVersion(fp.getLocation(), artifactVersions));
+                } else {
+                    if (fp.getVersion() == null) {
+                        String version = artifactVersions.getFPVersion(fp.getGroupId(), fp.getArtifactId(), fp.getClassifier());
+                        if (version == null) {
+                            throw new MojoExecutionException("No version found for " + fp.getGroupId() + ":" + fp.getArtifactId());
+                        }
+                        fp.setVersion(version);
+                    }
+                }
+            }
+        }
+
         if (isLayerBasedConfig) {
             if (!hasFeaturePack) {
                 throw new ProvisioningException("No server feature-pack location to provision layers, you must set a feature-pack-location");
@@ -1127,7 +1140,8 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             ProvisioningConfig config = buildGalleonConfig(pm).buildConfig();
             IoUtils.recursiveDelete(home);
             getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
-
+            MavenUpgrade mavenUpgrade = new MavenUpgrade(this, config, pm);
+            config = mavenUpgrade.upgrade();
             // store provisioning.xml
             try(FileWriter writer = new FileWriter(outputProvisioningFile.toFile())) {
                 ProvisioningXmlWriter.getInstance().write(config, writer);
@@ -1479,7 +1493,7 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
     }
 
-    private Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
+    Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
         final MavenArtifact artifact = new MavenArtifact()
                 .setGroupId(coordinate.getGroupId())
                 .setArtifactId(coordinate.getArtifactId())

@@ -32,32 +32,55 @@ public final class MavenProjectArtifactVersions {
         return new MavenProjectArtifactVersions(project);
     }
 
-    private final Map<String, String> versions = new TreeMap<>();
+    private final Map<String, Artifact> artifactVersions = new TreeMap<>();
+    private final Map<String, Artifact> fpVersions = new TreeMap<>();
 
     private MavenProjectArtifactVersions(MavenProject project) {
         for (Artifact artifact : project.getArtifacts()) {
             if (TEST_JAR.equals(artifact.getType()) || SYSTEM.equals(artifact.getScope())) {
                 continue;
             }
-            put(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier(), artifact.getVersion(), artifact.getType());
+            put(artifact);
         }
     }
 
-    public String getVersion(OverridenArtifact artifact) {
-        final StringBuilder buf = new StringBuilder(artifact.getGroupId()).append(':').
-                append(artifact.getArtifactId());
-        if (artifact.getClassifier() != null && !artifact.getClassifier().isEmpty()) {
-            buf.append("::").append(artifact.getClassifier());
-        }
-        return versions.get(buf.toString());
+    public String getArtifactVersion(String groupId, String artifactId, String classifier) {
+        String key = getKey(groupId, artifactId, classifier);
+        Artifact a = artifactVersions.get(key);
+        return a == null ? null : a.getVersion();
     }
 
-    private void put(final String groupId, final String artifactId, final String classifier, final String version, final String type) {
-        final StringBuilder buf = new StringBuilder(groupId).append(':').
+    public Artifact getArtifact(OverridenArtifact artifact) {
+        String key = getKey(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier());
+        Artifact a = artifactVersions.get(key);
+        return a;
+    }
+
+    public String getFPVersion(String groupId, String artifactId, String classifier) {
+        String key = getKey(groupId, artifactId, classifier);
+        Artifact a = fpVersions.get(key);
+        return a == null ? null : a.getVersion();
+    }
+
+    private static String getKey(String groupId, String artifactId, String classifier) {
+        StringBuilder buf = new StringBuilder(groupId).append(':').
                 append(artifactId);
         if (classifier != null && !classifier.isEmpty()) {
             buf.append("::").append(classifier);
         }
-        versions.put(buf.toString(), version);
+        return buf.toString();
+    }
+
+    public String getVersion(OverridenArtifact artifact) {
+        return getArtifactVersion(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier());
+    }
+
+    private void put(Artifact artifact) {
+        String key = getKey(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier());
+        if ("zip".equals(artifact.getType())) {
+            fpVersions.put(key, artifact);
+        } else {
+            artifactVersions.put(key, artifact);
+        }
     }
 }
