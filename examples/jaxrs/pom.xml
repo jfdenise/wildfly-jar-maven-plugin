@@ -26,7 +26,7 @@
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-core</artifactId>
-            <scope>provided</scope>
+            <scope>runtime</scope>
         </dependency>
         <!-- EAP upgrade -->
         <dependency>
@@ -34,7 +34,7 @@
             <artifactId>wildfly-ee-galleon-pack</artifactId>
             <!-- for now BOM doesn't contain EAP feature-pack -->
             <version>7.4.1.Final-redhat-00001</version>
-            <scope>provided</scope>
+            <scope>runtime</scope>
             <!-- zip is mandatory for feature-pack -->
             <type>zip</type>
         </dependency>
@@ -43,6 +43,7 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.2.8</version>
+            <scope>runtime</scope>
         </dependency>
         
         <!-- XP galleon-feature-pack we depend on. Not mandatory, just to retrieve the version not set in the plugin -->
@@ -51,7 +52,7 @@
             <artifactId>wildfly-galleon-pack</artifactId>
             <!-- for now BOM doesn't contain XP feature-pack -->
             <version>3.0.0.GA-redhat-00001-Final</version>
-            <scope>provided</scope>
+            <scope>runtime</scope>
             <!-- zip is mandatory for feature-pack -->
             <type>zip</type>
         </dependency>
