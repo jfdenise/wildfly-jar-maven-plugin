@@ -808,8 +808,13 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
             if (fp.getNormalizedPath() != null) {
                 fpl = pm.getLayoutFactory().addLocal(fp.getNormalizedPath(), false);
             } else if (fp.getGroupId() != null && fp.getArtifactId() != null) {
-                Path path = resolveMaven(fp);
-                fpl = pm.getLayoutFactory().addLocal(path, false);
+                StringBuilder coords = new StringBuilder();
+                coords.append(fp.getGroupId()).append(":").append(fp.getArtifactId());
+                if (fp.getClassifier() != null && !fp.getClassifier().isEmpty()) {
+                    coords.append(":").append(fp.getClassifier());
+                }
+                coords.append(":").append(fp.getVersion());
+                fpl = FeaturePackLocation.fromString(coords.toString());
             } else {
                 fpl = FeaturePackLocation.fromString(fp.getLocation());
             }

@@ -47,7 +47,6 @@ public final class MavenUpgrade {
         this.mojo = mojo;
         this.config = config;
         for (FeaturePackConfig cfg : config.getFeaturePackDeps()) {
-            FeaturePackLocation location = cfg.getLocation();
             FeaturePack fp = toFeaturePack(cfg, pm);
             if (fp == null) {
                 throw new ProvisioningException("Invalid location " + cfg.getLocation());
@@ -60,8 +59,8 @@ public final class MavenUpgrade {
         for (FeaturePack fp : topLevels.values()) {
             resolvedFeaturePacks.add(mojo.resolveMaven(fp));
         }
-        //System.out.println("TOP LEVEL " + topLevels);
-        //System.out.println("RESOLVED FPS " + resolvedFeaturePacks);
+        mojo.getLog().debug("Top level feature-packs: " + topLevels);
+        mojo.getLog().debug("Resolved feature-packs " + resolvedFeaturePacks);
         for (Path p : resolvedFeaturePacks) {
             FeaturePackSpec spec = FeaturePackDescriber.readSpec(p);
             //System.out.println(spec.getFPID());
@@ -76,13 +75,14 @@ public final class MavenUpgrade {
                 FeaturePack fp = toFeaturePack(cfg, pm);
                 if (fp != null) {
                     String ga = fp.getGroupId() + ":" + fp.getArtifactId();
-                    if (!topLevels.containsKey(ga)) {
+                    // Only add the dep if not already seen. The first installed FP dep wins.
+                    if (!topLevels.containsKey(ga) && !dependencies.containsKey(ga)) {
                         dependencies.put(ga, fp);
                     }
                 }
             }
         }
-        //System.out.println("DEPENDENCIES " + dependencies);
+        mojo.getLog().debug("FP dependencies " + dependencies);
     }
 
     ProvisioningConfig upgrade() throws MojoExecutionException, ProvisioningDescriptionException, ProvisioningException {
@@ -90,13 +90,19 @@ public final class MavenUpgrade {
         List<Artifact> artifactDependencies = new ArrayList<>();
         for (OverridenArtifact a : mojo.overridenServerArtifacts) {
             // Is it a potential feature-pack
-            if (dependencies.containsKey(a.getGroupId() + ":" + a.getArtifactId())) {
+            String key = a.getGroupId() + ":" + a.getArtifactId();
+            if (dependencies.containsKey(key)) {
                 String fpVers = mojo.artifactVersions.getFPVersion(a.getGroupId(), a.getArtifactId(), a.getClassifier());
                 if (fpVers == null) {
                     throw new MojoExecutionException("No version for Galleon feature-pack " + a.getGroupId() + ":" + a.getArtifactId());
                 } else {
-                    a.setVersion(fpVers);
-                    featurePackDependencies.add(a);
+                    FeaturePack dep = dependencies.get(key);
+                    if (fpVers.equals(dep.getVersion())) {
+                        mojo.getLog().warn("[UPDATE] Dependency " + key + " wll be not upgraded, already at version: " + fpVers);
+                    } else {
+                        a.setVersion(fpVers);
+                        featurePackDependencies.add(a);
+                    }
                 }
             } else {
                 Artifact mavenArtifact = mojo.artifactVersions.getArtifact(a);
