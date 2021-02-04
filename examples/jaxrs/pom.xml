@@ -21,23 +21,8 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Server dependencies we want to override -->
-        <!-- The Bom has been set in dependenciesManagement of parent pom.xml --> 
-        <dependency>
-            <groupId>io.undertow</groupId>
-            <artifactId>undertow-core</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- EAP upgrade -->
-        <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-ee-galleon-pack</artifactId>
-            <!-- for now BOM doesn't contain EAP feature-pack -->
-            <version>7.4.1.Final-redhat-00001</version>
-            <scope>runtime</scope>
-            <!-- zip is mandatory for feature-pack -->
-            <type>zip</type>
-        </dependency>
+        <!-- Pre-requisite, the EAP and XP Boms have been set in dependenciesManagement of parent pom.xml -->
+           
         <!-- postgresql driver upgrade -->
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -45,18 +30,6 @@
             <version>42.2.8</version>
             <scope>runtime</scope>
         </dependency>
-        
-        <!-- XP galleon-feature-pack we depend on. Not mandatory, just to retrieve the version not set in the plugin -->
-        <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-galleon-pack</artifactId>
-            <!-- for now BOM doesn't contain XP feature-pack -->
-            <version>3.0.0.GA-redhat-00001-Final</version>
-            <scope>runtime</scope>
-            <!-- zip is mandatory for feature-pack -->
-            <type>zip</type>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -69,7 +42,7 @@
                     <feature-packs>
                         <!-- A bunch of feature-packs XP, SSO and Datasources -->
                         <feature-pack>
-                            <!-- XP -->
+                            <!-- XP version retrieved from BOM or dependencies -->
                             <groupId>org.wildfly</groupId>
                             <artifactId>wildfly-galleon-pack</artifactId>
                         </feature-pack>
@@ -93,6 +66,7 @@
                     </layers>
                     <!-- We list the set of artifacts we want to see replaced during provisioning -->
                     <overriden-server-artifacts>
+                        <!-- Versions are retrieved from dependencies and dependenciesManagement --> 
                         <!-- undertow core -->
                         <artifact>
                             <groupId>io.undertow</groupId>

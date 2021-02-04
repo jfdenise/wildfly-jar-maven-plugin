@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.maven.artifact.Artifact;
+import org.apache.maven.shared.artifact.ArtifactCoordinate;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.jboss.galleon.ProvisioningDescriptionException;
 import org.jboss.galleon.ProvisioningException;
@@ -87,7 +87,7 @@ public final class MavenUpgrade {
 
     ProvisioningConfig upgrade() throws MojoExecutionException, ProvisioningDescriptionException, ProvisioningException {
         List<OverridenArtifact> featurePackDependencies = new ArrayList<>();
-        List<Artifact> artifactDependencies = new ArrayList<>();
+        List<ArtifactCoordinate> artifactDependencies = new ArrayList<>();
         for (OverridenArtifact a : mojo.overridenServerArtifacts) {
             // Is it a potential feature-pack
             String key = a.getGroupId() + ":" + a.getArtifactId();
@@ -105,7 +105,7 @@ public final class MavenUpgrade {
                     }
                 }
             } else {
-                Artifact mavenArtifact = mojo.artifactVersions.getArtifact(a);
+                ArtifactCoordinate mavenArtifact = mojo.artifactVersions.getArtifact(a);
                 if (mavenArtifact == null) {
                     // It could be a wrong FP not present in the list of dependencies
                     String fpVers = mojo.artifactVersions.getFPVersion(a.getGroupId(), a.getArtifactId(), a.getClassifier());
@@ -133,10 +133,10 @@ public final class MavenUpgrade {
                 mojo.getLog().info("[UPDATE] Overriding server artifacts with:");
                 if (!mojo.pluginOptions.containsKey("jboss-overriden-artifacts")) {
                     String updates = toOptionValue(artifactDependencies);
-                    for (Artifact update : artifactDependencies) {
+                    for (ArtifactCoordinate update : artifactDependencies) {
                         mojo.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
                                 + (update.getClassifier() == null ? "" : update.getClassifier() + ":")
-                                + update.getVersion() + (update.getType() == null ? "" : ":" + update.getType()));
+                                + update.getVersion() + (update.getExtension() == null ? "" : ":" + update.getExtension()));
                     }
                     c.addOption("jboss-overriden-artifacts", updates);
                 }
@@ -209,15 +209,15 @@ public final class MavenUpgrade {
         return fp;
     }
 
-    public static String toOptionValue(List<Artifact> lst) throws ProvisioningException {
+    public static String toOptionValue(List<ArtifactCoordinate> lst) throws ProvisioningException {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < lst.size(); i++) {
-            Artifact artifact = lst.get(i);
+            ArtifactCoordinate artifact = lst.get(i);
             validate(artifact);
             builder.append(artifact.getGroupId()).append(":").append(artifact.getArtifactId()).
                     append(":").append(artifact.getVersion()).append(":");
             String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
-            builder.append(classifier).append(":").append(artifact.getType());
+            builder.append(classifier).append(":").append(artifact.getExtension());
             if (i < lst.size() - 1) {
                 builder.append("|");
             }
@@ -225,7 +225,7 @@ public final class MavenUpgrade {
         return builder.toString();
     }
 
-    private static void validate(Artifact artifact) throws ProvisioningException {
+    private static void validate(ArtifactCoordinate artifact) throws ProvisioningException {
         if (artifact.getGroupId() == null) {
             throw new ProvisioningException("No groupId set for overriden artifact");
         }
@@ -235,7 +235,7 @@ public final class MavenUpgrade {
         if (artifact.getVersion() == null) {
             throw new ProvisioningException("No version set for overriden artifact");
         }
-        if (artifact.getType() == null) {
+        if (artifact.getExtension() == null) {
             throw new ProvisioningException("No type set for overriden artifact");
         }
     }
