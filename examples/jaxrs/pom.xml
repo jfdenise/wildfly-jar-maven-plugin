@@ -13,9 +13,6 @@
 
     <name>WildFly Bootable JAR - JAX-RS Example</name>
     <description>An example of how to use JAX-RS resources</description>
-    
-    <!-- Pre-requisites, the EAP 7.4.1 BOM and XP 3.0.0 have been set in dependenciesManagement of parent pom.xml -->
-    <!-- They contain Galleon feature-pack zip artifacts versions -->
 
     <dependencies>
         <dependency>
@@ -34,10 +31,11 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- EAP upgrade, version can come from EAP 7.4.1 runtime BOM -->
+        <!-- EAP upgrade -->
         <dependency>
             <groupId>org.wildfly</groupId>
             <artifactId>wildfly-ee-galleon-pack</artifactId>
+            <version>7.4.1.Final-redhat-00001</version>
             <type>zip</type>
         </dependency>
         
@@ -49,11 +47,12 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- Version can come from XP3 runtime BOM file. That is the XP galleon-feature-pack we depend on.  -->
+        <!-- That is the XP galleon-feature-pack we depend on.  -->
         <!-- Not mandatory, just to retrieve the version that becomes optional in the plugin -->
         <dependency>
             <groupId>org.wildfly</groupId>
             <artifactId>wildfly-galleon-pack</artifactId>
+            <version>3.0.0.GA-redhat-00001-Final</version>
             <type>zip</type>
         </dependency>
 
