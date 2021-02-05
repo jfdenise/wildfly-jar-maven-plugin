@@ -227,9 +227,12 @@ public final class MavenUpgrade {
     }
 
     //groupId:artifactid[:classfier:extension:][:version]
-    private static FeaturePack getFeaturePack(String str) throws MojoExecutionException {
+    static FeaturePack getFeaturePack(String str) throws MojoExecutionException {
+        if (str == null) {
+            throw new MojoExecutionException("Null feature-pack coords");
+        }
         final String[] parts = str.split(":");
-        if (parts.length <= 2 && parts.length > 5) {
+        if (parts.length < 2 || parts.length > 5) {
             throw new MojoExecutionException("Invalid feature-pack location format: " + str);
         }
         FeaturePack fp = new FeaturePack();
@@ -257,7 +260,7 @@ public final class MavenUpgrade {
         return fp;
     }
 
-    public static String toOptionValue(List<OverridenArtifact> lst) throws ProvisioningException {
+    static String toOptionValue(List<OverridenArtifact> lst) throws ProvisioningException {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < lst.size(); i++) {
             OverridenArtifact artifact = lst.get(i);

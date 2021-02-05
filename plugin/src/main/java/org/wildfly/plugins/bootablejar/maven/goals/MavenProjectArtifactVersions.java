@@ -44,12 +44,6 @@ public final class MavenProjectArtifactVersions {
         }
     }
 
-    public String getArtifactVersion(String groupId, String artifactId, String classifier) {
-        String key = getKey(groupId, artifactId, classifier);
-        Artifact a = artifactVersions.get(key);
-        return a == null ? null : a.getVersion();
-    }
-
     public Artifact getArtifact(OverridenArtifact artifact) {
         String key = getKey(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier());
         Artifact a = artifactVersions.get(key);
@@ -68,10 +62,6 @@ public final class MavenProjectArtifactVersions {
             buf.append("::").append(classifier);
         }
         return buf.toString();
-    }
-
-    public String getVersion(OverridenArtifact artifact) {
-        return getArtifactVersion(artifact.getGroupId(), artifact.getArtifactId(), artifact.getClassifier());
     }
 
     private void put(Artifact artifact) {
