@@ -101,9 +101,15 @@ public final class MavenUpgrade {
     ProvisioningConfig upgrade() throws MojoExecutionException, ProvisioningDescriptionException, ProvisioningException {
         List<FeaturePack> featurePackDependencies = new ArrayList<>();
         List<OverridenArtifact> artifactDependencies = new ArrayList<>();
+        Map<String, OverridenArtifact> allArtifacts = new HashMap<>();
         for (OverridenArtifact a : mojo.overridenServerArtifacts) {
-            // Is it a potential feature-pack
             String key = a.getGAC();
+            if (allArtifacts.containsKey(key)) {
+                throw new MojoExecutionException("Artifact " + key + " is present more than once in the overriden artifacts. Must be unique.");
+            } else {
+                allArtifacts.put(key, a);
+            }
+            // Is it a potential feature-pack
             if (dependencies.containsKey(key)) {
                 Artifact fpArtifact = mojo.artifactVersions.getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
                 if (fpArtifact == null) {
