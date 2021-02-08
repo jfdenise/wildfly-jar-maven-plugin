@@ -25,6 +25,7 @@ public class OverridenArtifact implements DependableCoordinate {
     private String version;
     private String type = "jar";
     private String classifier;
+    private String path;
 
     @Override
     public String getGroupId() {
@@ -69,6 +70,14 @@ public class OverridenArtifact implements DependableCoordinate {
 
     public void setClassifier(String classifier) {
         this.classifier = classifier;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 
     public String getGAC() {

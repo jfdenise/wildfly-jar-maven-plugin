@@ -18,6 +18,8 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -103,21 +105,22 @@ public class MavenUgradeTestCase {
         OverridenArtifact art1 = new OverridenArtifact();
         lst.add(art1);
         try {
-            MavenUpgrade.toOptionValue(lst);
+            MavenUpgrade.toOptionValue(lst, null);
             throw new Exception("Should have failed");
         } catch (ProvisioningException ex) {
             // XXX ok expected
         }
+
         art1.setGroupId("foo");
         try {
-            MavenUpgrade.toOptionValue(lst);
+            MavenUpgrade.toOptionValue(lst, null);
             throw new Exception("Should have failed");
         } catch (ProvisioningException ex) {
             // XXX ok expected
         }
         art1.setArtifactId("bar");
         try {
-            MavenUpgrade.toOptionValue(lst);
+            MavenUpgrade.toOptionValue(lst, null);
             throw new Exception("Should have failed");
         } catch (ProvisioningException ex) {
             // XXX ok expected
@@ -130,12 +133,12 @@ public class MavenUgradeTestCase {
         Assert.assertEquals(art1.getGAC(), gac);
 
         String expected = "foo:bar:vers::jar";
-        String option = MavenUpgrade.toOptionValue(lst);
+        String option = MavenUpgrade.toOptionValue(lst, null);
         Assert.assertEquals(expected, option);
 
         art1.setType(null);
         try {
-            MavenUpgrade.toOptionValue(lst);
+            MavenUpgrade.toOptionValue(lst, null);
             throw new Exception("Should have failed");
         } catch (ProvisioningException ex) {
             // XXX ok expected
@@ -144,14 +147,14 @@ public class MavenUgradeTestCase {
         art1.setType("type");
         Assert.assertEquals(art1.getGAC(), gac);
         expected = "foo:bar:vers::type";
-        option = MavenUpgrade.toOptionValue(lst);
+        option = MavenUpgrade.toOptionValue(lst, null);
         Assert.assertEquals(expected, option);
 
         art1.setClassifier("class");
         Assert.assertEquals(art1.getGAC(), gac + ":class");
         expected = "foo:bar:vers:class:type";
 
-        option = MavenUpgrade.toOptionValue(lst);
+        option = MavenUpgrade.toOptionValue(lst, null);
         Assert.assertEquals(expected, option);
 
         OverridenArtifact art2 = new OverridenArtifact();
@@ -164,8 +167,42 @@ public class MavenUgradeTestCase {
         expected = expected + "|foo2:bar2:vers2:class2:type2";
         lst.add(art2);
 
-        option = MavenUpgrade.toOptionValue(lst);
+        option = MavenUpgrade.toOptionValue(lst, null);
         Assert.assertEquals(expected, option);
 
+        Path localArtifact = Files.createTempFile("option-test", ".jar");
+        localArtifact.toFile().deleteOnExit();
+        art2.setPath(localArtifact.toAbsolutePath().toString());
+        expected = expected + ":" + localArtifact.toAbsolutePath().toString();
+        option = MavenUpgrade.toOptionValue(lst, null);
+        Assert.assertEquals(expected, option);
+    }
+
+    @Test
+    public void testOptionLocalValue() throws Exception {
+        Path localArtifact1 = Files.createTempFile("option-test", ".jar");
+        localArtifact1.toFile().deleteOnExit();
+        List<OverridenArtifact> lst = new ArrayList<>();
+        OverridenArtifact art1 = new OverridenArtifact();
+        art1.setGroupId("foo");
+        art1.setArtifactId("bar");
+        lst.add(art1);
+        art1.setPath("/foo/bar.jar");
+        try {
+            MavenUpgrade.toOptionValue(lst, null);
+            throw new Exception("Should have failed");
+        } catch (ProvisioningException ex) {
+            // XXX ok expected
+        }
+        art1.setPath(null);
+        art1.setPath(localArtifact1.toAbsolutePath().toString());
+        String expected = "foo:bar:unknown::jar:" + localArtifact1.toAbsolutePath().toString();
+        String option = MavenUpgrade.toOptionValue(lst, null);
+        Assert.assertEquals(expected, option);
+
+        // Relative path
+        art1.setPath(localArtifact1.toAbsolutePath().getFileName().toString());
+        option = MavenUpgrade.toOptionValue(lst, localArtifact1.toAbsolutePath().getParent());
+        Assert.assertEquals(expected, option);
     }
 }

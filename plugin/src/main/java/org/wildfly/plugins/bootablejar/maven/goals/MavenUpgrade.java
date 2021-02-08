@@ -16,7 +16,9 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,8 @@ import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.OverridenArtifact;
 
 public final class MavenUpgrade {
+
+    private static final String UNKNOWN_VERSION = "unknown";
 
     private final Map<String, FeaturePack> dependencies = new HashMap<>();
     private final Map<String, FeaturePack> topLevels = new HashMap<>();
@@ -119,23 +123,27 @@ public final class MavenUpgrade {
                     }
                 }
             } else {
-                Artifact mavenArtifact = mojo.artifactVersions.getArtifact(a);
-                if (mavenArtifact == null) {
-                    // It could be a wrong FP not present in the list of dependencies
-                    Artifact fpArtifact = mojo.artifactVersions.getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
-                    if (fpArtifact != null) {
-                        throw new MojoExecutionException("Zip artifact " + a.getGAC() + " not found. "
-                                + " Could be a wrong Galleon feature-pack used to override a feature-pack dependency.");
-                    }
-                    throw new MojoExecutionException("No version for artifact " + a.getGAC());
-                } else {
-                    if (a.getVersion() == null) {
-                        a.setVersion(mavenArtifact.getVersion());
-                    }
-                    if (a.getType() == null) {
-                        a.setType(mavenArtifact.getType());
-                    }
+                if (a.getPath() != null) {
                     artifactDependencies.add(a);
+                } else {
+                    Artifact mavenArtifact = mojo.artifactVersions.getArtifact(a);
+                    if (mavenArtifact == null) {
+                        // It could be a wrong FP not present in the list of dependencies
+                        Artifact fpArtifact = mojo.artifactVersions.getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
+                        if (fpArtifact != null) {
+                            throw new MojoExecutionException("Zip artifact " + a.getGAC() + " not found. "
+                                    + " Could be a wrong Galleon feature-pack used to override a feature-pack dependency.");
+                        }
+                        throw new MojoExecutionException("No version for artifact " + a.getGAC());
+                    } else {
+                        if (a.getVersion() == null) {
+                            a.setVersion(mavenArtifact.getVersion());
+                        }
+                        if (a.getType() == null) {
+                            a.setType(mavenArtifact.getType());
+                        }
+                        artifactDependencies.add(a);
+                    }
                 }
             }
         }
@@ -154,11 +162,13 @@ public final class MavenUpgrade {
             if (!artifactDependencies.isEmpty()) {
                 mojo.getLog().info("[UPDATE] Overriding server artifacts with:");
                 if (!mojo.pluginOptions.containsKey("jboss-overriden-artifacts")) {
-                    String updates = toOptionValue(artifactDependencies);
+                    String updates = toOptionValue(artifactDependencies, mojo.project.getBasedir().toPath());
+                    mojo.getLog().debug("Galleon option for overriden artifacts " + updates);
                     for (OverridenArtifact update : artifactDependencies) {
                         mojo.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
                                 + (update.getClassifier() == null ? "" : update.getClassifier() + ":")
-                                + update.getVersion() + (update.getType() == null ? "" : ":" + update.getType()));
+                                + update.getVersion()
+                                + (update.getType() == null ? "" : ":" + update.getType()) + (update.getPath() == null ? "" : ":" + update.getPath()));
                     }
                     c.addOption("jboss-overriden-artifacts", updates);
                 }
@@ -260,15 +270,29 @@ public final class MavenUpgrade {
         return fp;
     }
 
-    static String toOptionValue(List<OverridenArtifact> lst) throws ProvisioningException {
+    // Side effect is to update the OverridenArtifact instances with version and absolute path
+    static String toOptionValue(List<OverridenArtifact> lst, Path rootDir) throws ProvisioningException {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < lst.size(); i++) {
             OverridenArtifact artifact = lst.get(i);
+            if (artifact.getPath() != null) {
+                Path p = Paths.get(artifact.getPath());
+                if (!p.isAbsolute() && rootDir != null) {
+                    artifact.setPath(rootDir.resolve(p).toAbsolutePath().toString());
+                }
+
+                if (artifact.getVersion() == null) {
+                    artifact.setVersion(UNKNOWN_VERSION);
+                }
+            }
             validate(artifact);
             builder.append(artifact.getGroupId()).append(":").append(artifact.getArtifactId()).
                     append(":").append(artifact.getVersion()).append(":");
             String classifier = artifact.getClassifier() == null ? "" : artifact.getClassifier();
             builder.append(classifier).append(":").append(artifact.getType());
+            if (artifact.getPath() != null) {
+                builder.append(":").append(artifact.getPath());
+            }
             if (i < lst.size() - 1) {
                 builder.append("|");
             }
@@ -286,8 +310,14 @@ public final class MavenUpgrade {
         if (artifact.getVersion() == null) {
             throw new ProvisioningException("No version set for overriden artifact");
         }
-        if (artifact.getType() == null) {
-            throw new ProvisioningException("No type set for overriden artifact");
+        if (artifact.getPath() != null) {
+            if (!Files.exists(Paths.get(artifact.getPath()))) {
+                throw new ProvisioningException("Artifact path " + artifact.getPath() + " doesn't exist");
+            }
+        } else {
+            if (artifact.getType() == null) {
+                throw new ProvisioningException("No type set for overriden artifact");
+            }
         }
     }
 }

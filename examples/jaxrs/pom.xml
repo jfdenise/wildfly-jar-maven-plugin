@@ -23,7 +23,7 @@
 
         <!-- Server dependencies we want to override -->
         
-        <!-- Patched undertow upgrade --> 
+        <!-- CVE fix, undertow core upgrade  --> 
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-core</artifactId>
@@ -119,6 +119,11 @@
                         <artifact>
                             <groupId>org.postgresql</groupId>
                             <artifactId>postgresql</artifactId>
+                        </artifact>
+                         <artifact>
+                            <groupId>io.undertow</groupId>
+                            <artifactId>undertow-servlet</artifactId>
+                            <path>/home/jdenise/workspaces/wildfly-jar-maven-plugin/examples/jaxrs/undertow-servlet-fix1.jar</path>
                         </artifact>
                     </overriden-server-artifacts>
                 </configuration>
