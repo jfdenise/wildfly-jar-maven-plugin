@@ -20,6 +20,16 @@ wildfly-bootable:
       bbb:
         value: bar
     subsystem:
+        security:
+          security-domain:
+            other:
+              authentication:
+                classic:    
+                  login-module:
+                    kieLoginModule:
+                      code: org.kie.security.jaas.KieLoginModule
+                      flag: optional
+                      module: deployment.yaml.war
         microprofile-config-smallrye:
           config-source:
             foo:
@@ -39,9 +49,27 @@ wildfly-bootable:
               level: ALL
             com.demo:
               level: WARN
+          pattern-formatter:
+            PATTERN:
+              pattern: "\"%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\""
+            COLOR_PATTERN:
+              pattern: "\"%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\""
+          # Must be after pattern-formatter although we are in admin mode
+          console-handler:
+            CONSOLE:
+              level: INFO
+              named-formatter: COLOR_PATTERN
+          periodic-rotating-file-handler:
+            MYFILE:
+              file:
+                path: server.log
+              suffix: .yyyy-MM-dd
+              named-formatter: PATTERN
           root-logger:
+            # We can't add FILE and CONSOLE that already exist in the list.
             ROOT:
-              handlers: "[\"CONSOLE\"]"
+              handlers:
+               - MYFILE
               level: INFO
         metrics:
         ee:
@@ -137,4 +165,8 @@ wildfly-bootable:
                     classification:
                       logger:
                         configured-application: true
-            
+
+#User defined elements, must be ignored.
+org:
+    foo:
+        bar: true

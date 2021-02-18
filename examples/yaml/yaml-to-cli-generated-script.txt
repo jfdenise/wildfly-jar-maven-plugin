@@ -34,6 +34,22 @@ if (outcome != success) of /system-property=bbb/:read-resource
 else
 /system-property=bbb/:write-attribute(name=value, value=bar)
 end-if
+if (outcome != success) of /subsystem=security/:read-resource
+/subsystem=security/:add()
+end-if
+if (outcome != success) of /subsystem=security/security-domain=other/:read-resource
+/subsystem=security/security-domain=other/:add()
+end-if
+if (outcome != success) of /subsystem=security/security-domain=other/authentication=classic/:read-resource
+/subsystem=security/security-domain=other/authentication=classic/:add()
+end-if
+if (outcome != success) of /subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:read-resource
+/subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:add(code=org.kie.security.jaas.KieLoginModule,flag=optional,module=deployment.yaml.war)
+else
+/subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:write-attribute(name=code, value=org.kie.security.jaas.KieLoginModule)
+/subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:write-attribute(name=flag, value=optional)
+/subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:write-attribute(name=module, value=deployment.yaml.war)
+end-if
 if (outcome != success) of /subsystem=microprofile-config-smallrye/:read-resource
 /subsystem=microprofile-config-smallrye/:add()
 end-if
@@ -71,11 +87,34 @@ if (outcome != success) of /subsystem=logging/logger=com.demo/:read-resource
 else
 /subsystem=logging/logger=com.demo/:write-attribute(name=level, value=WARN)
 end-if
-if (outcome != success) of /subsystem=logging/root-logger=ROOT/:read-resource
-/subsystem=logging/root-logger=ROOT/:add(handlers=["CONSOLE"],level=INFO)
+if (outcome != success) of /subsystem=logging/pattern-formatter=PATTERN/:read-resource
+/subsystem=logging/pattern-formatter=PATTERN/:add(pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n")
 else
-/subsystem=logging/root-logger=ROOT/:write-attribute(name=handlers, value=["CONSOLE"])
+/subsystem=logging/pattern-formatter=PATTERN/:write-attribute(name=pattern, value="%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n")
+end-if
+if (outcome != success) of /subsystem=logging/pattern-formatter=COLOR_PATTERN/:read-resource
+/subsystem=logging/pattern-formatter=COLOR_PATTERN/:add(pattern="%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n")
+else
+/subsystem=logging/pattern-formatter=COLOR_PATTERN/:write-attribute(name=pattern, value="%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n")
+end-if
+if (outcome != success) of /subsystem=logging/console-handler=CONSOLE/:read-resource
+/subsystem=logging/console-handler=CONSOLE/:add(level=INFO,named-formatter=COLOR_PATTERN)
+else
+/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=level, value=INFO)
+/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=named-formatter, value=COLOR_PATTERN)
+end-if
+if (outcome != success) of /subsystem=logging/periodic-rotating-file-handler=MYFILE/:read-resource
+/subsystem=logging/periodic-rotating-file-handler=MYFILE/:add(file={path=server.log},suffix=.yyyy-MM-dd,named-formatter=PATTERN)
+else
+/subsystem=logging/periodic-rotating-file-handler=MYFILE/:write-attribute(name=file, value={path=server.log})
+/subsystem=logging/periodic-rotating-file-handler=MYFILE/:write-attribute(name=suffix, value=.yyyy-MM-dd)
+/subsystem=logging/periodic-rotating-file-handler=MYFILE/:write-attribute(name=named-formatter, value=PATTERN)
+end-if
+if (outcome != success) of /subsystem=logging/root-logger=ROOT/:read-resource
+/subsystem=logging/root-logger=ROOT/:add(handlers=[MYFILE],level=INFO)
+else
 /subsystem=logging/root-logger=ROOT/:write-attribute(name=level, value=INFO)
+/subsystem=logging/root-logger=ROOT/:list-add(name=handlers, value=MYFILE)
 end-if
 if (outcome != success) of /subsystem=metrics/:read-resource
 /subsystem=metrics/:add()
