@@ -1,9 +1,11 @@
+# feature branch socket-binding-group
 if (outcome != success) of /socket-binding-group=standard-sockets/:read-resource
 /socket-binding-group=standard-sockets/:add(default-interface=public,port-offset=${jboss.socket.binding.port-offset:99})
 else
 /socket-binding-group=standard-sockets/:write-attribute(name=default-interface, value=public)
 /socket-binding-group=standard-sockets/:write-attribute(name=port-offset, value=${jboss.socket.binding.port-offset:99})
 end-if
+# feature branch socket-binding-group.socket-binding
 if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=http/:read-resource
 /socket-binding-group=standard-sockets/socket-binding=http/:add(interface=public)
 else
@@ -12,6 +14,7 @@ end-if
 if (outcome != success) of /socket-binding-group=standard-sockets/socket-binding=https/:read-resource
 /socket-binding-group=standard-sockets/socket-binding=https/:add()
 end-if
+# feature branch socket-binding-group.remote-destination-outbound-socket-binding
 if (outcome != success) of /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:read-resource
 /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=mail-snmt/:add(host=foo,port=8081)
 else
@@ -24,6 +27,7 @@ else
 /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:write-attribute(name=host, value=foo2)
 /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=foo2/:write-attribute(name=port, value=8082)
 end-if
+# feature branch system-property
 if (outcome != success) of /system-property=aaa/:read-resource
 /system-property=aaa/:add(value=foo)
 else
@@ -34,6 +38,7 @@ if (outcome != success) of /system-property=bbb/:read-resource
 else
 /system-property=bbb/:write-attribute(name=value, value=bar)
 end-if
+# feature branch subsystem.security
 if (outcome != success) of /subsystem=security/:read-resource
 /subsystem=security/:add()
 end-if
@@ -50,30 +55,13 @@ else
 /subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:write-attribute(name=flag, value=optional)
 /subsystem=security/security-domain=other/authentication=classic/login-module=kieLoginModule/:write-attribute(name=module, value=deployment.yaml.war)
 end-if
-if (outcome != success) of /subsystem=microprofile-config-smallrye/:read-resource
-/subsystem=microprofile-config-smallrye/:add()
-end-if
-if (outcome != success) of /subsystem=microprofile-config-smallrye/config-source=foo/:read-resource
-/subsystem=microprofile-config-smallrye/config-source=foo/:add(dir={path=/home/jdenise},ordinal=200)
-else
-/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=dir, value={path=/home/jdenise})
-/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=ordinal, value=200)
-end-if
-if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/:read-resource
-/subsystem=microprofile-opentracing-smallrye/:add(default-tracer=toto)
-else
-/subsystem=microprofile-opentracing-smallrye/:write-attribute(name=default-tracer, value=toto)
-end-if
-if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:read-resource
-/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:add(sampler-param=30.0)
-else
-/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:write-attribute(name=sampler-param, value=30.0)
-end-if
+# feature branch subsystem.weld
 if (outcome != success) of /subsystem=weld/:read-resource
 /subsystem=weld/:add(require-bean-descriptor=true)
 else
 /subsystem=weld/:write-attribute(name=require-bean-descriptor, value=true)
 end-if
+# feature branch subsystem.logging
 if (outcome != success) of /subsystem=logging/:read-resource
 /subsystem=logging/:add()
 end-if
@@ -97,12 +85,6 @@ if (outcome != success) of /subsystem=logging/pattern-formatter=COLOR_PATTERN/:r
 else
 /subsystem=logging/pattern-formatter=COLOR_PATTERN/:write-attribute(name=pattern, value="%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n")
 end-if
-if (outcome != success) of /subsystem=logging/console-handler=CONSOLE/:read-resource
-/subsystem=logging/console-handler=CONSOLE/:add(level=INFO,named-formatter=COLOR_PATTERN)
-else
-/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=level, value=INFO)
-/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=named-formatter, value=COLOR_PATTERN)
-end-if
 if (outcome != success) of /subsystem=logging/periodic-rotating-file-handler=MYFILE/:read-resource
 /subsystem=logging/periodic-rotating-file-handler=MYFILE/:add(file={path=server.log},suffix=.yyyy-MM-dd,named-formatter=PATTERN)
 else
@@ -110,21 +92,26 @@ else
 /subsystem=logging/periodic-rotating-file-handler=MYFILE/:write-attribute(name=suffix, value=.yyyy-MM-dd)
 /subsystem=logging/periodic-rotating-file-handler=MYFILE/:write-attribute(name=named-formatter, value=PATTERN)
 end-if
+if (outcome != success) of /subsystem=logging/console-handler=CONSOLE/:read-resource
+/subsystem=logging/console-handler=CONSOLE/:add(level=INFO,named-formatter=COLOR_PATTERN)
+else
+/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=level, value=INFO)
+/subsystem=logging/console-handler=CONSOLE/:write-attribute(name=named-formatter, value=COLOR_PATTERN)
+end-if
 if (outcome != success) of /subsystem=logging/root-logger=ROOT/:read-resource
 /subsystem=logging/root-logger=ROOT/:add(handlers=[MYFILE],level=INFO)
 else
 /subsystem=logging/root-logger=ROOT/:write-attribute(name=level, value=INFO)
 /subsystem=logging/root-logger=ROOT/:list-add(name=handlers, value=MYFILE)
 end-if
-if (outcome != success) of /subsystem=metrics/:read-resource
-/subsystem=metrics/:add()
-end-if
+# feature branch subsystem.ee
 if (outcome != success) of /subsystem=ee/:read-resource
 /subsystem=ee/:add(annotation-property-replacement=true,spec-descriptor-property-replacement=true)
 else
 /subsystem=ee/:write-attribute(name=annotation-property-replacement, value=true)
 /subsystem=ee/:write-attribute(name=spec-descriptor-property-replacement, value=true)
 end-if
+# feature branch subsystem.jca
 if (outcome != success) of /subsystem=jca/:read-resource
 /subsystem=jca/:add()
 end-if
@@ -141,6 +128,7 @@ else
 /subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=queue-length, value=50)
 /subsystem=jca/workmanager=foo/short-running-threads=foo-short/:write-attribute(name=keepalive-time, value={time=10, unit=SECONDS})
 end-if
+# feature branch subsystem.elytron
 if (outcome != success) of /subsystem=elytron/:read-resource
 /subsystem=elytron/:add()
 end-if
@@ -189,6 +177,7 @@ else
 /subsystem=elytron/permission-set=my-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
 /subsystem=elytron/permission-set=my-permissions/:list-add(name=permissions, value={class-name=org.wildfly.transaction.client.RemoteTransactionPermission, module=org.wildfly.transaction.client, target-name=*})
 end-if
+# feature branch core-service.management
 if (outcome != success) of /core-service=management/management-interface=http-interface/:read-resource
 /core-service=management/management-interface=http-interface/:add(console-enabled=true,http-upgrade={enabled=true},constant-headers=[{path=/foo, headers=[{name=foo, value=bar}]}, {path=/foo2, headers=[{name=foo2, value=bar}]}])
 else
@@ -200,3 +189,28 @@ end-if
 /core-service=management/access=authorization/:write-attribute(name=provider, value=simple)
 /core-service=management/access=authorization/:write-attribute(name=use-identity-roles, value=true)
 /core-service=management/access=authorization/constraint=application-classification/type=logging/classification=logger/:write-attribute(name=configured-application, value=true)
+# feature branch subsystem.microprofile-config-smallrye
+if (outcome != success) of /subsystem=microprofile-config-smallrye/:read-resource
+/subsystem=microprofile-config-smallrye/:add()
+end-if
+if (outcome != success) of /subsystem=microprofile-config-smallrye/config-source=foo/:read-resource
+/subsystem=microprofile-config-smallrye/config-source=foo/:add(dir={path=/home/jdenise},ordinal=200)
+else
+/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=dir, value={path=/home/jdenise})
+/subsystem=microprofile-config-smallrye/config-source=foo/:write-attribute(name=ordinal, value=200)
+end-if
+# feature branch subsystem.microprofile-opentracing-smallrye
+if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/:read-resource
+/subsystem=microprofile-opentracing-smallrye/:add(default-tracer=toto)
+else
+/subsystem=microprofile-opentracing-smallrye/:write-attribute(name=default-tracer, value=toto)
+end-if
+if (outcome != success) of /subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:read-resource
+/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:add(sampler-param=30.0)
+else
+/subsystem=microprofile-opentracing-smallrye/jaeger-tracer=toto/:write-attribute(name=sampler-param, value=30.0)
+end-if
+# feature branch subsystem.metrics
+if (outcome != success) of /subsystem=metrics/:read-resource
+/subsystem=metrics/:add()
+end-if

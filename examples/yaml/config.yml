@@ -49,28 +49,29 @@ wildfly-bootable:
               level: ALL
             com.demo:
               level: WARN
+          # Put it before pattern-formatter to force re-ordering based on capabilities
+          console-handler:
+            CONSOLE:
+              level: INFO
+              named-formatter: COLOR_PATTERN
           pattern-formatter:
             PATTERN:
               pattern: "\"%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\""
             COLOR_PATTERN:
               pattern: "\"%K{level}%d{HH:mm:ss,SSS} %-5p [%c] (%t) %s%e%n\""
-          # Must be after pattern-formatter although we are in admin mode
-          console-handler:
-            CONSOLE:
+          root-logger:
+            # We can't add FILE and CONSOLE that already exist in the list.
+            # It is located before MYFILE in order to force re-ordering the CLI scripts.
+            ROOT:
+              handlers:
+               - MYFILE
               level: INFO
-              named-formatter: COLOR_PATTERN
           periodic-rotating-file-handler:
             MYFILE:
               file:
                 path: server.log
               suffix: .yyyy-MM-dd
               named-formatter: PATTERN
-          root-logger:
-            # We can't add FILE and CONSOLE that already exist in the list.
-            ROOT:
-              handlers:
-               - MYFILE
-              level: INFO
         metrics:
         ee:
           annotation-property-replacement: true

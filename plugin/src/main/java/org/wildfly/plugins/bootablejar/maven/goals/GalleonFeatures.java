@@ -27,7 +27,9 @@ import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.layout.FeaturePackLayout;
 import org.jboss.galleon.layout.ProvisioningLayout;
+import org.jboss.galleon.spec.CapabilitySpec;
 import org.jboss.galleon.spec.FeatureParameterSpec;
+import org.jboss.galleon.spec.FeatureReferenceSpec;
 import org.jboss.galleon.spec.FeatureSpec;
 import org.jboss.galleon.xml.FeatureSpecXmlParser;
 
@@ -60,6 +62,9 @@ public class GalleonFeatures {
                                         specProps.setProperty("spec.op.params", spec.getAnnotation("jboss-op").getElement("op-params"));
                                         specProps.setProperty("spec.addr.params", spec.getAnnotation("jboss-op").getElement("addr-params"));
                                     }
+                                    if (spec.hasAnnotation("feature-branch")) {
+                                        specProps.setProperty("spec.feature.branch", spec.getAnnotation("feature-branch").getElement("id"));
+                                    }
                                     StringBuilder paramNames = new StringBuilder();
                                     for (Map.Entry<String, FeatureParameterSpec> p : spec.getParams().entrySet()) {
                                         String pname = p.getKey();
@@ -77,6 +82,40 @@ public class GalleonFeatures {
                                         paramNames.append(pname);
                                     }
                                     specProps.setProperty("spec.params", paramNames.toString());
+                                    StringBuilder requiredCapabilities = new StringBuilder();
+                                    for (CapabilitySpec cap : spec.getRequiredCapabilities()) {
+                                        if (requiredCapabilities.length() != 0) {
+                                            requiredCapabilities.append(",");
+                                        }
+                                        requiredCapabilities.append(cap.toString());
+                                    }
+                                    if (requiredCapabilities.length() != 0) {
+                                        specProps.setProperty("spec.capabilities.required", requiredCapabilities.toString());
+                                    }
+                                    StringBuilder providedCapabilities = new StringBuilder();
+                                    for (CapabilitySpec cap : spec.getProvidedCapabilities()) {
+                                        if (providedCapabilities.length() != 0) {
+                                            providedCapabilities.append(",");
+                                        }
+                                        providedCapabilities.append(cap.toString());
+                                    }
+                                    if (providedCapabilities.length() != 0) {
+                                        specProps.setProperty("spec.capabilities.provided", providedCapabilities.toString());
+                                    }
+                                    StringBuilder refs = new StringBuilder();
+                                    for (FeatureReferenceSpec fr : spec.getFeatureRefs()) {
+                                        String refName = fr.getName();
+                                        if ("host".equals(refName) || "profile".equals(refName) || refName.startsWith("host.")) {
+                                            continue;
+                                        }
+                                        if (refs.length() != 0) {
+                                            refs.append(",");
+                                        }
+                                        refs.append(refName);
+                                    }
+                                    if (refs.length() != 0) {
+                                        specProps.setProperty("spec.refs", refs.toString());
+                                    }
                                     Path target = features.resolve(name + ".properties");
                                     try (FileOutputStream s = new FileOutputStream(target.toFile())) {
                                         specProps.store(s, "galleon properties used for yaml transformation");
