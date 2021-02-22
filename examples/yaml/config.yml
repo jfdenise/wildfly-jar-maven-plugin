@@ -19,6 +19,35 @@ wildfly-bootable:
         value: foo
       bbb:
         value: bar
+    # Put it before elytron to force re-ordering due to sasl factory being required.
+    core-service:
+      management:
+        management-interface:
+          http-interface:
+              console-enabled: true
+              http-upgrade:
+                enabled: true
+                sasl-authentication-factory: example-sasl-auth
+              constant-headers:
+              - path: /foo
+                headers:
+                - name: foo
+                  value: bar
+              - path: /foo2
+                headers:
+                - name: foo2
+                  value: bar 
+        access:
+          authorization:
+            provider: simple
+            use-identity-roles: true
+            constraint:
+              application-classification:
+                type:
+                  logging:
+                    classification:
+                      logger:
+                        configured-application: true
     subsystem:
         security:
           security-domain:
@@ -99,6 +128,14 @@ wildfly-bootable:
                - realm: exampleFsRealm 
                permission-mapper: default-permission-mapper
                default-realm: exampleFsRealm
+          sasl-authentication-factory:
+             example-sasl-auth:
+               sasl-server-factory: global
+               security-domain: exampleSD
+               mechanism-configurations:
+               - mechanism-name: DIGEST
+                 mechanism-realm-configurations:
+                 - realm-name: exampleFsRealm 
           http-authentication-factory:
              example-http-auth:
                http-server-mechanism-factory: global
@@ -139,33 +176,6 @@ wildfly-bootable:
              - class-name: org.wildfly.transaction.client.RemoteTransactionPermission
                module: org.wildfly.transaction.client
                target-name: "*"
-    core-service:
-      management:
-        management-interface:
-          http-interface:
-              console-enabled: true
-              http-upgrade:
-                enabled: true
-              constant-headers:
-              - path: /foo
-                headers:
-                - name: foo
-                  value: bar
-              - path: /foo2
-                headers:
-                - name: foo2
-                  value: bar 
-        access:
-          authorization:
-            provider: simple
-            use-identity-roles: true
-            constraint:
-              application-classification:
-                type:
-                  logging:
-                    classification:
-                      logger:
-                        configured-application: true
 
 #User defined elements, must be ignored.
 org:
