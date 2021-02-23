@@ -17,6 +17,7 @@
 package org.wildfly.plugins.bootablejar.maven.goals;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -36,6 +37,7 @@ public class UpgradeArtifactInvalidTestCase extends AbstractBootableJarMojoTestC
             throw new Exception("Should have failed");
         } catch (MojoExecutionException ex) {
             // XXX OK, expected
+            Assert.assertTrue(ex.toString().contains("No version for artifact io.undertow:undertow-core"));
         }
     }
 }

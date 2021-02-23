@@ -23,7 +23,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.project.MavenProject;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 
-public final class MavenProjectArtifactVersions {
+final class MavenProjectArtifactVersions {
 
     private static final String TEST_JAR = "test-jar";
     private static final String SYSTEM = "system";

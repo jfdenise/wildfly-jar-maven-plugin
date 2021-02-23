@@ -17,16 +17,17 @@
 package org.wildfly.plugins.bootablejar.maven.goals;
 
 import org.apache.maven.plugin.MojoExecutionException;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
  * @author jdenise
  */
-public class UpgradeArtifactInvalidFPTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactUnknownArtifactTestCase extends AbstractBootableJarMojoTestCase {
 
-    public UpgradeArtifactInvalidFPTestCase() {
-        super("invalid-fp-upgrade-artifact-pom.xml", true, null);
+    public UpgradeArtifactUnknownArtifactTestCase() {
+        super("invalid-upgrade-unknown-artifact-pom.xml", true, null);
     }
 
     @Test
@@ -36,8 +37,8 @@ public class UpgradeArtifactInvalidFPTestCase extends AbstractBootableJarMojoTes
             mojo.execute();
             throw new Exception("Should have failed");
         } catch (MojoExecutionException ex) {
+            Assert.assertTrue(ex.toString().contains("Overridden artifact jakarta.platform:jakarta.jakartaee-api not know in provisioned feature-packs"));
             // XXX OK, expected
-            Assert.assertTrue(ex.toString().contains("Zip artifact org.wildfly:wildfly-galleon-pack not found in dependencies"));
         }
     }
 }

@@ -11,11 +11,10 @@
     <name>WildFly bootable jar Example for tests</name>
     <dependencies>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-galleon-pack</artifactId>
-            <version>WF_VERSION</version>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>8.0.0</version>
             <scope>provided</scope>
-            <type>zip</type>
         </dependency>
     </dependencies>
     <build>
@@ -30,12 +29,11 @@
                     </layers>
                     <overridden-server-artifacts>
                         <artifact>
-                            <groupId>org.wildfly</groupId>
-                            <artifactId>wildfly-galleon-pack</artifactId>
+                             <groupId>jakarta.platform</groupId>
+                             <artifactId>jakarta.jakartaee-api</artifactId>
                         </artifact>
                     </overridden-server-artifacts>
                 </configuration>
-                
             </plugin>
         </plugins>
     </build>
