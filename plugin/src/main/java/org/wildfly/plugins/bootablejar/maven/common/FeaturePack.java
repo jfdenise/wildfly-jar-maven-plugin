@@ -47,6 +47,7 @@ public class FeaturePack implements DependableCoordinate, ArtifactCoordinate {
     private Boolean inheritPackages = false;
     private List<String> excludedPackages = Collections.emptyList();
     private List<String> includedPackages = Collections.emptyList();
+    private List<OverriddenArtifact> overriddenArtifacts = Collections.emptyList();
 
     private Path path;
 
@@ -149,6 +150,14 @@ public class FeaturePack implements DependableCoordinate, ArtifactCoordinate {
 
     public void setIncludedPackages(List<String> includedPackages) {
         this.includedPackages = includedPackages;
+    }
+
+    public List<OverriddenArtifact> getOverridenArtifacts() {
+        return overriddenArtifacts;
+    }
+
+    public void setOverridenArtifacts(List<OverriddenArtifact> overriddenArtifacts) {
+        this.overriddenArtifacts = overriddenArtifacts;
     }
 
     public void setPath(File path) {

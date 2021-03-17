@@ -104,6 +104,10 @@ final class MavenUpgrade {
         return getScannedModules().getProvisionedArtifacts();
     }
 
+    private Map<String, String> getOriginalVersions(String producer) throws ProvisioningException, MojoExecutionException {
+        return getScannedModules().getProvisionedArtifacts(producer);
+    }
+
     private ScannedModules getScannedModules() throws ProvisioningException, MojoExecutionException {
         if (modules == null) {
             modules = ScannedModules.scanProvisionedArtifacts(pm, config);
@@ -112,7 +116,7 @@ final class MavenUpgrade {
     }
 
     void dumpArtifacts(Path file) throws ProvisioningException, MojoExecutionException, IOException {
-        Map<String, Map<String, String>> perModules = getScannedModules().getPerModuleArtifacts();
+        Map<String, Map<String, Map<String, String>>> perFeaturePack = getScannedModules().getPerFeaturePackArtifacts();
         StringBuilder builder = new StringBuilder();
         builder.append("<all-artifacts>").append(System.lineSeparator());
 
@@ -140,24 +144,30 @@ final class MavenUpgrade {
         builder.append("    <version>").append(jbossModules.getVersion()).append("</version>").append(System.lineSeparator());
         builder.append("    <type>").append(jbossModules.getType()).append("</type>").append(System.lineSeparator());
         builder.append("  </jboss-modules-runtime>").append(System.lineSeparator());
-        builder.append("  <modules>").append(System.lineSeparator());
-        for (Entry<String, Map<String, String>> module : perModules.entrySet()) {
-            builder.append("    <module name=\"").append(module.getKey()).append("\">").append(System.lineSeparator());
-            for (String s : module.getValue().values()) {
-                Artifact a = AbstractBuildBootableJarMojo.getArtifact(s);
-                builder.append("      <artifact>").append(System.lineSeparator());
-                builder.append("        <groupId>").append(a.getGroupId()).append("</groupId>").append(System.lineSeparator());
-                builder.append("        <artifactId>").append(a.getArtifactId()).append("</artifactId>").append(System.lineSeparator());
-                if (a.getClassifier() != null && !a.getClassifier().isEmpty()) {
-                    builder.append("        <classifier>").append(a.getClassifier()).append("</classifier>").append(System.lineSeparator());
+        builder.append("  <feature-packs>").append(System.lineSeparator());
+        for (Entry<String, Map<String, Map<String, String>>> fp : perFeaturePack.entrySet()) {
+            builder.append("    <feature-pack producer=").append(fp.getKey()).append(">").append(System.lineSeparator());
+            builder.append("      <modules>").append(System.lineSeparator());
+            for (Entry<String, Map<String, String>> module : fp.getValue().entrySet()) {
+                builder.append("        <module name=\"").append(module.getKey()).append("\">").append(System.lineSeparator());
+                for (String s : module.getValue().values()) {
+                    Artifact a = AbstractBuildBootableJarMojo.getArtifact(s);
+                    builder.append("          <artifact>").append(System.lineSeparator());
+                    builder.append("            <groupId>").append(a.getGroupId()).append("</groupId>").append(System.lineSeparator());
+                    builder.append("            <artifactId>").append(a.getArtifactId()).append("</artifactId>").append(System.lineSeparator());
+                    if (a.getClassifier() != null && !a.getClassifier().isEmpty()) {
+                        builder.append("            <classifier>").append(a.getClassifier()).append("</classifier>").append(System.lineSeparator());
+                    }
+                    builder.append("            <version>").append(a.getVersion()).append("</version>").append(System.lineSeparator());
+                    builder.append("            <type>").append(a.getType()).append("</type>").append(System.lineSeparator());
+                    builder.append("          </artifact>").append(System.lineSeparator());
                 }
-                builder.append("        <version>").append(a.getVersion()).append("</version>").append(System.lineSeparator());
-                builder.append("        <type>").append(a.getType()).append("</type>").append(System.lineSeparator());
-                builder.append("      </artifact>").append(System.lineSeparator());
+                builder.append("        </module>").append(System.lineSeparator());
             }
-            builder.append("    </module>").append(System.lineSeparator());
+            builder.append("      </modules>").append(System.lineSeparator());
+            builder.append("    </feature-pack>");
         }
-        builder.append("  </modules>").append(System.lineSeparator());
+
         builder.append("</all-artifacts>").append(System.lineSeparator());
         Files.write(file, builder.toString().getBytes("UTF-8"));
     }
@@ -236,35 +246,34 @@ final class MavenUpgrade {
                     }
                     throw new MojoExecutionException("No version for artifact " + a.getGAC());
                 } else {
-                    checkScope(mavenArtifact);
-                    if (a.getVersion() == null) {
-                        a.setVersion(mavenArtifact.getVersion());
-                    }
-                    if (a.getType() == null) {
-                        a.setType(mavenArtifact.getType());
-                    }
-                    String originalVersion = getOriginalArtifactVersion(a, originalVersions);
-                    if (originalVersion == null) {
-                        throw new MojoExecutionException("Overridden artifact " + a.getGAC() + " not know in provisioned feature-packs");
-                    }
-                    DefaultArtifactVersion orig = new DefaultArtifactVersion(originalVersion);
-                    DefaultArtifactVersion overriddenVersion = new DefaultArtifactVersion(a.getVersion());
-                    int compared = orig.compareTo(overriddenVersion);
-                    if (compared > 0) {
-                        if (mojo.warnArtifactDowngrade) {
-                            mojo.getLog().warn("[UPDATE] Downgrading artifact " + a.getGAC() + " from " + originalVersion + " to " + a.getVersion());
-                        }
-                    } else {
-                        if (compared == 0) {
-                            mojo.getLog().warn("[UPDATE] Artifact " + a.getGAC() + " is already at version " + a.getVersion() + ", will be not upgraded.");
-                        }
-                    }
-                    if (compared != 0) {
-                        artifactDependencies.add(a);
-                    }
+                    addArtifact(a, mavenArtifact, originalVersions, artifactDependencies);
                 }
             }
         }
+        Map<String, List<OverriddenArtifact>> perFeaturePack = new HashMap<>();
+        for (Entry<FeaturePack, FeaturePackLocation> entry : mojo.resolvedLocations.entrySet()) {
+            FeaturePack fp = entry.getKey();
+            String producer = entry.getValue().getProducerName();
+            Map<String, String> originalversionsForProducer = getOriginalVersions(producer);
+            if (!fp.getOverridenArtifacts().isEmpty()) {
+                for (OverriddenArtifact o : fp.getOverridenArtifacts()) {
+                    if (o.getGroupId() == null || o.getArtifactId() == null) {
+                        throw new MojoExecutionException("Invalid Artifact , groupId and artifactId are required");
+                    }
+                    Artifact mavenArtifact = mojo.artifactVersions.getArtifact(o);
+                    if (mavenArtifact == null) {
+                        throw new MojoExecutionException("No version for artifact " + o.getGAC());
+                    }
+                    List<OverriddenArtifact> lst = perFeaturePack.get(producer);
+                    if (lst == null) {
+                        lst = new ArrayList<>();
+                        perFeaturePack.put(producer, lst);
+                    }
+                    addArtifact(o, mavenArtifact, originalversionsForProducer, lst);
+                }
+            }
+        }
+
         if (!artifactDependencies.isEmpty() || !featurePackDependencies.isEmpty()) {
             ProvisioningConfig.Builder c = ProvisioningConfig.builder(config);
             if (!featurePackDependencies.isEmpty()) {
@@ -277,21 +286,74 @@ final class MavenUpgrade {
                     c.addTransitiveDep(fpl);
                 }
             }
-            if (!artifactDependencies.isEmpty()) {
-                mojo.getLog().info("[UPDATE] Overriding server artifacts with:");
-                if (!mojo.pluginOptions.containsKey("jboss-overridden-artifacts")) {
+            StringBuilder artifactsOption = new StringBuilder();
+            if (mojo.pluginOptions.containsKey("jboss-overridden-artifacts")) {
+                mojo.getLog().warn("[UPDATE] jboss-overridden-artifacts plugin option already set, any "
+                        + "specified artifact upgrade will be not applied.");
+            } else {
+                // Global upgrade
+                if (!artifactDependencies.isEmpty()) {
+                    mojo.getLog().info("[UPDATE] Overriding server artifacts globally with:");
                     String updates = toOptionValue(artifactDependencies);
-                    for (OverriddenArtifact update : artifactDependencies) {
-                        mojo.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
-                                + (update.getClassifier() == null ? "" : update.getClassifier() + ":")
-                                + update.getVersion() + (update.getType() == null ? "" : ":" + update.getType()));
+                    advertiseArtifactsUpgrade(artifactDependencies);
+                    artifactsOption.append(updates);
+                }
+                // per feature-pack
+                if (!perFeaturePack.isEmpty()) {
+                    for (Entry<String, List<OverriddenArtifact>> entry : perFeaturePack.entrySet()) {
+                        List<OverriddenArtifact> artifacts = entry.getValue();
+                        String producer = entry.getKey();
+                        mojo.getLog().info("[UPDATE] Overriding server artifacts from " + producer + " with:");
+                        String updates = toOptionValue(artifacts);
+                        advertiseArtifactsUpgrade(artifacts);
+                        artifactsOption.append("@").append(producer).append("=").append(updates);
                     }
-                    c.addOption("jboss-overridden-artifacts", updates);
+                }
+                if (artifactsOption.length() != 0) {
+                    c.addOption("jboss-overridden-artifacts", artifactsOption.toString());
                 }
             }
             return c.build();
         } else {
             return config;
+        }
+    }
+
+    private void advertiseArtifactsUpgrade(List<OverriddenArtifact> artifactDependencies) {
+        for (OverriddenArtifact update : artifactDependencies) {
+            mojo.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
+                    + (update.getClassifier() == null ? "" : update.getClassifier() + ":")
+                    + update.getVersion() + (update.getType() == null ? "" : ":" + update.getType()));
+        }
+    }
+
+    private void addArtifact(OverriddenArtifact a, Artifact mavenArtifact,
+            Map<String, String> originalVersions, List<OverriddenArtifact> artifactDependencies) throws MojoExecutionException {
+        checkScope(mavenArtifact);
+        if (a.getVersion() == null) {
+            a.setVersion(mavenArtifact.getVersion());
+        }
+        if (a.getType() == null) {
+            a.setType(mavenArtifact.getType());
+        }
+        String originalVersion = getOriginalArtifactVersion(a, originalVersions);
+        if (originalVersion == null) {
+            throw new MojoExecutionException("Overridden artifact " + a.getGAC() + " not know in provisioned feature-packs");
+        }
+        DefaultArtifactVersion orig = new DefaultArtifactVersion(originalVersion);
+        DefaultArtifactVersion overriddenVersion = new DefaultArtifactVersion(a.getVersion());
+        int compared = orig.compareTo(overriddenVersion);
+        if (compared > 0) {
+            if (mojo.warnArtifactDowngrade) {
+                mojo.getLog().warn("[UPDATE] Downgrading artifact " + a.getGAC() + " from " + originalVersion + " to " + a.getVersion());
+            }
+        } else {
+            if (compared == 0) {
+                mojo.getLog().warn("[UPDATE] Artifact " + a.getGAC() + " is already at version " + a.getVersion() + ", will be not upgraded.");
+            }
+        }
+        if (compared != 0) {
+            artifactDependencies.add(a);
         }
     }
 
