@@ -28,6 +28,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.wildfly.core.launcher.BootableJarCommandBuilder;
+import org.wildfly.core.launcher.CommandBuilder;
 import org.wildfly.core.launcher.Launcher;
 import org.wildfly.plugin.common.AbstractServerConnection;
 import org.wildfly.plugin.core.ServerHelper;
@@ -100,6 +101,24 @@ public class StartBootableJarMojo extends AbstractServerConnection {
     @Parameter(defaultValue = "${project.build.directory}/wildfly-jar-start-stdout.log", property = "wildfly.bootable.stdout")
     public String stdout;
 
+    /**
+     * Disable JAR packaging. A directory (named 'server' by default) containing
+     * the server and deployments is created in the project build directory. In
+     * this mode, multiple deployments can be added (in addition to the primary
+     * project artifact) by adding ear/war to the project dependencies.
+     * <br/>
+     * &lt;server&gt;<br/>
+     * &lt;enabled&gt;true or false&lt;/enabled&gt;<br/>
+     * &lt;directory-name&gt;name of a directory inside the project target directory&lt;/directory-name&gt;<br/>
+     * &lt;/server&gt;<br/>
+     */
+    @Parameter(alias = "server")
+    ServerModeConfig server;
+
+    private boolean isJarPackaging() {
+        return server == null || !server.isEnabled();
+    }
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         doExecute(project);
@@ -110,14 +129,18 @@ public class StartBootableJarMojo extends AbstractServerConnection {
             getLog().debug(String.format("Skipping " + goal() + " of %s:%s", project.getGroupId(), project.getArtifactId()));
             return;
         }
-
-        final BootableJarCommandBuilder commandBuilder = BootableJarCommandBuilder.of(Utils.getBootableJarPath(jarFileName, project, goal()))
-                .addJavaOptions(jvmArguments)
-                .addServerArguments(arguments);
+        Launcher launcher;
+        boolean inherit = "inherit".equalsIgnoreCase(stdout);
+        if (isJarPackaging()) {
+            CommandBuilder builder = BootableJarCommandBuilder.of(Utils.getBootableJarPath(jarFileName, project, goal()))
+                    .addJavaOptions(jvmArguments)
+                    .addServerArguments(arguments);
+            launcher = Launcher.of(builder);
+        } else {
+            launcher = server.createServerLauncher(project, jvmArguments, arguments, !inherit, goal());
+        }
         try {
-            final Launcher launcher = Launcher.of(commandBuilder);
-
-            if ("inherit".equalsIgnoreCase(stdout)) {
+            if (inherit) {
                 launcher.inherit();
             } else {
                 final Path redirect = Paths.get(stdout);
