@@ -479,8 +479,23 @@ public class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
         Artifact bootArtifact;
         try {
+            System.out.println("BEFORE PROVISIONING");
+            try {
+                if (Files.exists(wildflyDir)) {
+                    System.out.println("WARNING, DIR EXIST!!! " + wildflyDir);
+                    Files.list(wildflyDir).forEach((path)-> System.out.println("BEFORE PATH " + path));
+                }
+            } catch (IOException ex1) {
+                throw new RuntimeException("ERROR ", ex1);
+            }
             bootArtifact = provisionServer(wildflyDir, contentDir.resolve("provisioning.xml"), contentRoot);
         } catch (ProvisioningException | IOException | XMLStreamException ex) {
+            try {
+                System.out.println("LIST FILES LOCATED in " + wildflyDir);
+                Files.list(wildflyDir).forEach((path)-> System.out.println("PATH " + path));
+            } catch (IOException ex1) {
+                throw new RuntimeException("ERROR ", ex1);
+            }
             throw new MojoExecutionException("Provisioning failed", ex);
         }
 
