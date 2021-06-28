@@ -93,7 +93,9 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
         this.copyWar = copyWar;
         this.provisioning = provisioning;
         this.cli = cli;
+        System.out.println("TEST NAME " + testName.toLowerCase());
         testDir = createTestDirectory(testName.toLowerCase());
+        System.out.println("CREATE TEST DIR " + testDir);
     }
 
     final boolean isProject() {
