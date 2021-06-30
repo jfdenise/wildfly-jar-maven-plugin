@@ -10,7 +10,7 @@
     <name>WildFly Bootable JAR - Examples</name>
 
     <properties>
-        <version.bootable.jar>6.0.0.Alpha2-SNAPSHOT</version.bootable.jar>
+        <version.bootable.jar>6.0.0.Alpha1</version.bootable.jar>
         <version.keycloak>13.0.1</version.keycloak>
         <version.wildfly>24.0.0.Final</version.wildfly>
         <version.jkube>1.0.1</version.jkube>
