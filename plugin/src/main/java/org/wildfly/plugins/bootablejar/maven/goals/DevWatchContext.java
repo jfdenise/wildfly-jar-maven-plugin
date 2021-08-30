@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -39,8 +40,8 @@ import java.util.Set;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.ProjectBuildingException;
 import org.jboss.galleon.util.IoUtils;
-import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.JAR;
-import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.WAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WAR;
 
 /**
  *

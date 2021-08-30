@@ -42,6 +42,7 @@
   </licenses>
 
   <modules>
+    <module>common</module>
     <module>docs</module>
     <module>plugin</module>
     <module>tests</module>
@@ -150,6 +151,11 @@
      <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>wildfly-jar-cloud-extension</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>wildfly-jar-maven-plugin-common</artifactId>
         <version>${project.version}</version>
       </dependency>
         

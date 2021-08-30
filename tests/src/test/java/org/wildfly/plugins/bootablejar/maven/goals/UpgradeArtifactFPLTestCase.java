@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenProjectArtifactVersions;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.maven.artifact.Artifact;
@@ -24,6 +25,7 @@ import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author jdenise
@@ -62,7 +64,7 @@ public class UpgradeArtifactFPLTestCase extends AbstractBootableJarMojoTestCase 
             Path ee = modulesDir.resolve("org").resolve("jboss").resolve("as").resolve("ee").resolve("main").resolve("wildfly-ee-" + wildflyeeVersion + ".jar");
             Assert.assertTrue(ee.toString(), Files.exists(ee));
         } finally {
-            BuildBootableJarMojo.deleteDir(unzippedJar);
+            Utils.deleteDir(unzippedJar);
         }
         checkJar(dir, true, true, layers, null, mojo.recordState);
         checkDeployment(dir, true);

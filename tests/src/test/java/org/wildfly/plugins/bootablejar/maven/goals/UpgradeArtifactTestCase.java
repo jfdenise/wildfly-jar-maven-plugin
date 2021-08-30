@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenProjectArtifactVersions;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author jdenise
@@ -89,7 +91,7 @@ public class UpgradeArtifactTestCase extends AbstractBootableJarMojoTestCase {
                     resolve("bundled").resolve("resteasy-spring-jar").resolve("resteasy-spring-" + restEasySpringVersion + ".jar");
             Assert.assertTrue(ee.toString(), Files.exists(ee));
         } finally {
-            BuildBootableJarMojo.deleteDir(unzippedJar);
+            Utils.deleteDir(unzippedJar);
         }
         checkJar(dir, true, true, layers, null, mojo.recordState);
         checkDeployment(dir, true);

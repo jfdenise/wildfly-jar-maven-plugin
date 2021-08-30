@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.plugins.bootablejar.maven.goals;
+package org.wildfly.plugins.bootablejar.maven.upgrade;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -23,12 +23,12 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.project.MavenProject;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 
-final class MavenProjectArtifactVersions {
+public final class MavenProjectArtifactVersions {
 
     private static final String TEST_JAR = "test-jar";
     private static final String SYSTEM = "system";
 
-    static MavenProjectArtifactVersions getInstance(MavenProject project) {
+    public static MavenProjectArtifactVersions getInstance(MavenProject project) {
         return new MavenProjectArtifactVersions(project);
     }
 

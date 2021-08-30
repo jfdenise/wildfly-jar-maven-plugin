@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.cli;
 
+import org.wildfly.plugins.bootablejar.maven.common.BootLoggingConfiguration;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -23,8 +24,7 @@ import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
-import org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo;
-import org.wildfly.plugins.bootablejar.maven.goals.BootLoggingConfiguration;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
 
 /**
  * A CLI executor, resolving CLI classes from an URL Classloader. We can't have
@@ -43,13 +43,13 @@ public class LocalCLIExecutor implements CLIExecutor {
     private final Level level;
     private final ClassLoader originalCl;
     private final URLClassLoader cliCl;
-    private final AbstractBuildBootableJarMojo mojo;
+    private final PluginContext ctx;
     private final CLIWrapper cliWrapper;
 
-    public LocalCLIExecutor(Path jbossHome, List<Path> cliArtifacts,
-            AbstractBuildBootableJarMojo mojo, boolean resolveExpression, BootLoggingConfiguration bootLoggingConfiguration) throws Exception {
-        this.mojo = mojo;
-        level = mojo.disableLog();
+    public LocalCLIExecutor(PluginContext ctx,  List<Path> cliArtifacts,
+            boolean resolveExpression, BootLoggingConfiguration bootLoggingConfiguration) throws Exception {
+        this.ctx = ctx;
+        level = ctx.disableLog();
         final URL[] cp = new URL[cliArtifacts.size()];
         Iterator<Path> it = cliArtifacts.iterator();
         int i = 0;
@@ -60,7 +60,7 @@ public class LocalCLIExecutor implements CLIExecutor {
         originalCl = Thread.currentThread().getContextClassLoader();
         cliCl = new URLClassLoader(cp, originalCl);
         Thread.currentThread().setContextClassLoader(cliCl);
-        cliWrapper = new CLIWrapper(jbossHome, resolveExpression, cliCl, bootLoggingConfiguration);
+        cliWrapper = new CLIWrapper(ctx.getJBossHome(), resolveExpression, cliCl, bootLoggingConfiguration);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class LocalCLIExecutor implements CLIExecutor {
                 cliCl.close();
             } catch (IOException e) {
             }
-            mojo.enableLog(level);
+            ctx.enableLog(level);
         }
     }
 

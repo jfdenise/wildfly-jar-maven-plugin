@@ -19,6 +19,7 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 import java.nio.file.Path;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.buildMiscPatch;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.randomString;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.readFile;
@@ -50,7 +51,7 @@ public class PatchExistingMiscTestCase extends AbstractBootableJarMojoTestCase {
             checkJar(dir, true, true, null, null, mojo.recordState);
             checkDeployment(dir, true);
         } finally {
-            BuildBootableJarMojo.deleteDir(home);
+            Utils.deleteDir(home);
         }
     }
 }

@@ -34,7 +34,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.codehaus.plexus.configuration.PlexusConfigurationException;
 import org.jboss.galleon.util.ZipUtils;
-import org.wildfly.plugins.bootablejar.maven.goals.BuildBootableJarMojo;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
 
 /**
  * A Enable Openshift configuration
@@ -84,7 +84,7 @@ public class CloudConfig {
         }
     }
 
-    public void copyExtraContent(BuildBootableJarMojo mojo, Path wildflyDir, Path contentDir)
+    public void copyExtraContent(PluginContext ctx, Path wildflyDir, Path contentDir)
             throws IOException, PlexusConfigurationException, MojoExecutionException {
         try (InputStream stream = CloudConfig.class.getResourceAsStream("logging.properties")) {
             Path target = wildflyDir.resolve("standalone").resolve("configuration").resolve("logging.properties");
@@ -96,11 +96,11 @@ public class CloudConfig {
         try (FileOutputStream s = new FileOutputStream(marker.toFile())) {
             props.store(s, type + " properties");
         }
-        Path extensionJar = mojo.resolveArtifact("org.wildfly.plugins", "wildfly-jar-cloud-extension", null, mojo.retrievePluginVersion());
+        Path extensionJar = ctx.resolveArtifact("org.wildfly.plugins", "wildfly-jar-cloud-extension", null, ctx.retrievePluginVersion());
         ZipUtils.unzip(extensionJar, contentDir);
     }
 
-    public Set<String> getExtraLayers(BuildBootableJarMojo mojo, String healthLayer, Log log) {
+    public Set<String> getExtraLayers(String healthLayer, Log log) {
         Set<String> set = new HashSet<>();
         if (healthLayer == null) {
             log.warn("No health layer found in feature-packs, health endpoint will be not available.");
@@ -112,9 +112,9 @@ public class CloudConfig {
         return set;
     }
 
-    public void addCLICommands(BuildBootableJarMojo mojo, List<String> commands) throws Exception {
+    public void addCLICommands(PluginContext ctx, List<String> commands) throws Exception {
         // Must be done first before to modify the config with static script
-        Path p = mojo.getJBossHome();
+        Path p = ctx.getJBossHome();
         Path config = p.resolve("standalone").resolve("configuration").resolve("standalone.xml");
         if (enableJgroupsPassword) {
             commands.addAll(JGroupsUtil.getAuthProtocolCommands(config));

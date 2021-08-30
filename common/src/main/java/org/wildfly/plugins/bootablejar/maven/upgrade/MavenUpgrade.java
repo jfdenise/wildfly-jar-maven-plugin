@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.plugins.bootablejar.maven.goals;
+package org.wildfly.plugins.bootablejar.maven.upgrade;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,20 +42,22 @@ import org.jboss.galleon.universe.maven.MavenChannel;
 import org.jboss.galleon.universe.maven.MavenUniverseException;
 import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
-final class MavenUpgrade {
+public final class MavenUpgrade {
 
     private final Map<String, FeaturePack> dependencies = new LinkedHashMap<>();
     private final Map<String, FeaturePack> topLevels = new LinkedHashMap<>();
-    private final AbstractBuildBootableJarMojo mojo;
+    private final PluginContext ctx;
     private final ProvisioningConfig config;
     private final Map<ProducerSpec, String> producerToGAC = new HashMap<>();
     private final ProvisioningManager pm;
     private ScannedModules modules;
 
-    MavenUpgrade(AbstractBuildBootableJarMojo mojo, ProvisioningConfig config, ProvisioningManager pm)
+    public MavenUpgrade(PluginContext ctx, ProvisioningConfig config, ProvisioningManager pm)
             throws MavenUniverseException, ProvisioningException, MojoExecutionException {
-        this.mojo = mojo;
+        this.ctx = ctx;
         this.config = config;
         this.pm = pm;
         for (FeaturePackConfig cfg : config.getFeaturePackDeps()) {
@@ -69,10 +71,10 @@ final class MavenUpgrade {
         // Resolve the FP to retrieve dependencies as expressed in fp spec.
         Map<String, Path> resolvedFeaturePacks = new LinkedHashMap<>();
         for (FeaturePack fp : topLevels.values()) {
-            resolvedFeaturePacks.put(fp.getGAC(), mojo.resolveMaven(fp));
+            resolvedFeaturePacks.put(fp.getGAC(), ctx.resolveMaven(fp));
         }
-        mojo.debug("Top level feature-packs: %s", topLevels);
-        mojo.debug("Resolved feature-packs: %s", resolvedFeaturePacks);
+        ctx.debug("Top level feature-packs: %s", topLevels);
+        ctx.debug("Resolved feature-packs: %s", resolvedFeaturePacks);
         for (Entry<String, Path> entry : resolvedFeaturePacks.entrySet()) {
             FeaturePackSpec spec = FeaturePackDescriber.readSpec(entry.getValue());
             producerToGAC.put(spec.getFPID().getProducer(), entry.getKey());
@@ -90,7 +92,7 @@ final class MavenUpgrade {
                     // Only add the dep if not already seen. The first installed FP dep wins.
                     if (!topLevels.containsKey(gac) && !dependencies.containsKey(gac)) {
                         // Resolve to retrieve the actual producer and map to GAC
-                        Path p = mojo.resolveMaven(fp);
+                        Path p = ctx.resolveMaven(fp);
                         FeaturePackSpec depSpec = FeaturePackDescriber.readSpec(p);
                         producerToGAC.put(depSpec.getFPID().getProducer(), gac);
                         dependencies.put(gac, fp);
@@ -98,7 +100,7 @@ final class MavenUpgrade {
                 }
             }
         }
-        mojo.debug("FP dependencies %s", dependencies);
+        ctx.debug("FP dependencies %s", dependencies);
     }
 
     private Map<String, String> getOriginalVersions() throws ProvisioningException, MojoExecutionException {
@@ -112,7 +114,7 @@ final class MavenUpgrade {
         return modules;
     }
 
-    void dumpArtifacts(Path file) throws ProvisioningException, MojoExecutionException, IOException {
+    public void dumpArtifacts(Path file) throws ProvisioningException, MojoExecutionException, IOException {
         Map<String, Map<String, String>> perModules = getScannedModules().getPerModuleArtifacts();
         StringBuilder builder = new StringBuilder();
         builder.append("<all-artifacts>").append(System.lineSeparator());
@@ -132,7 +134,7 @@ final class MavenUpgrade {
         }
         builder.append("  </galleon-feature-pack-dependencies>").append(System.lineSeparator());
         builder.append("  <jboss-modules-runtime>").append(System.lineSeparator());
-        Artifact jbossModules = AbstractBuildBootableJarMojo.getArtifact(getScannedModules().getModuleRuntime());
+        Artifact jbossModules = Utils.getArtifact(getScannedModules().getModuleRuntime());
         builder.append("    <groupId>").append(jbossModules.getGroupId()).append("</groupId>").append(System.lineSeparator());
         builder.append("    <artifactId>").append(jbossModules.getArtifactId()).append("</artifactId>").append(System.lineSeparator());
         if (jbossModules.getClassifier() != null && !jbossModules.getClassifier().isEmpty()) {
@@ -144,7 +146,7 @@ final class MavenUpgrade {
         if (!getScannedModules().getCopiedArtifacts().isEmpty()) {
             builder.append("  <copied-artifacts>").append(System.lineSeparator());
             for (String gav : getScannedModules().getCopiedArtifacts().values()) {
-                Artifact a = AbstractBuildBootableJarMojo.getArtifact(gav);
+                Artifact a = Utils.getArtifact(gav);
                 builder.append("    <artifact>").append(System.lineSeparator());
                 builder.append("      <groupId>").append(a.getGroupId()).append("</groupId>").append(System.lineSeparator());
                 builder.append("      <artifactId>").append(a.getArtifactId()).append("</artifactId>").append(System.lineSeparator());
@@ -161,7 +163,7 @@ final class MavenUpgrade {
         for (Entry<String, Map<String, String>> module : perModules.entrySet()) {
             builder.append("    <module name=\"").append(module.getKey()).append("\">").append(System.lineSeparator());
             for (String s : module.getValue().values()) {
-                Artifact a = AbstractBuildBootableJarMojo.getArtifact(s);
+                Artifact a = Utils.getArtifact(s);
                 builder.append("      <artifact>").append(System.lineSeparator());
                 builder.append("        <groupId>").append(a.getGroupId()).append("</groupId>").append(System.lineSeparator());
                 builder.append("        <artifactId>").append(a.getArtifactId()).append("</artifactId>").append(System.lineSeparator());
@@ -190,19 +192,19 @@ final class MavenUpgrade {
         if (value == null) {
             return null;
         }
-        Artifact artifact = AbstractBuildBootableJarMojo.getArtifact(value);
+        Artifact artifact = Utils.getArtifact(value);
         return artifact.getVersion();
     }
 
-    ProvisioningConfig upgrade() throws MojoExecutionException, ProvisioningDescriptionException, ProvisioningException {
-        if (mojo.overriddenServerArtifacts.isEmpty()) {
+    public ProvisioningConfig upgrade() throws MojoExecutionException, ProvisioningDescriptionException, ProvisioningException {
+        if (ctx.getOverriddenServerArtifacts().isEmpty()) {
             return config;
         }
         Map<String, String> originalVersions = getOriginalVersions();
         List<FeaturePack> featurePackDependencies = new ArrayList<>();
         List<OverriddenArtifact> artifactDependencies = new ArrayList<>();
         Map<String, OverriddenArtifact> allArtifacts = new HashMap<>();
-        for (OverriddenArtifact a : mojo.overriddenServerArtifacts) {
+        for (OverriddenArtifact a : ctx.getOverriddenServerArtifacts()) {
             if (a.getGroupId() == null || a.getArtifactId() == null) {
                 throw new MojoExecutionException("Invalid overridden artifact " + a.getGAC() + ". GroupId and ArtifactId are required.");
             }
@@ -214,7 +216,7 @@ final class MavenUpgrade {
             }
             // Is it a potential feature-pack
             if (dependencies.containsKey(key)) {
-                Artifact fpArtifact = mojo.artifactVersions.getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
+                Artifact fpArtifact = ctx.getArtifactVersions().getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
                 if (fpArtifact == null) {
                     throw new MojoExecutionException("No version for Galleon feature-pack " + a.getGAC());
                 } else {
@@ -227,12 +229,12 @@ final class MavenUpgrade {
                     DefaultArtifactVersion overriddenVersion = new DefaultArtifactVersion(fpArtifact.getVersion());
                     int compared = orig.compareTo(overriddenVersion);
                     if (compared > 0) {
-                        if (!mojo.disableWarnForArtifactDowngrade) {
-                            mojo.getLog().warn("[UPDATE] Downgrading dependency " + key + " from " + dep.getVersion() + " to " + fpArtifact.getVersion());
+                        if (!ctx.isWarnForArtifactDowngradeDisabled()) {
+                            ctx.getLog().warn("[UPDATE] Downgrading dependency " + key + " from " + dep.getVersion() + " to " + fpArtifact.getVersion());
                         }
                     } else {
                         if (compared == 0) {
-                            mojo.getLog().warn("[UPDATE] Dependency " + key + " will be not upgraded, already at version: " + fpArtifact.getVersion());
+                            ctx.getLog().warn("[UPDATE] Dependency " + key + " will be not upgraded, already at version: " + fpArtifact.getVersion());
                         }
                     }
                     if (compared != 0) {
@@ -246,10 +248,10 @@ final class MavenUpgrade {
                     }
                 }
             } else {
-                Artifact mavenArtifact = mojo.artifactVersions.getArtifact(a);
+                Artifact mavenArtifact = ctx.getArtifactVersions().getArtifact(a);
                 if (mavenArtifact == null) {
                     // It could be a wrong FP not present in the list of dependencies
-                    Artifact fpArtifact = mojo.artifactVersions.getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
+                    Artifact fpArtifact = ctx.getArtifactVersions().getFeaturePackArtifact(a.getGroupId(), a.getArtifactId(), a.getClassifier());
                     if (fpArtifact != null) {
                         throw new MojoExecutionException("Zip artifact " + a.getGAC() + " not found in dependencies. "
                                 + " Could be a wrong Galleon feature-pack used to override a feature-pack dependency.");
@@ -271,12 +273,12 @@ final class MavenUpgrade {
                     DefaultArtifactVersion overriddenVersion = new DefaultArtifactVersion(a.getVersion());
                     int compared = orig.compareTo(overriddenVersion);
                     if (compared > 0) {
-                        if (!mojo.disableWarnForArtifactDowngrade) {
-                            mojo.getLog().warn("[UPDATE] Downgrading artifact " + a.getGAC() + " from " + originalVersion + " to " + a.getVersion());
+                        if (!ctx.isWarnForArtifactDowngradeDisabled()) {
+                            ctx.getLog().warn("[UPDATE] Downgrading artifact " + a.getGAC() + " from " + originalVersion + " to " + a.getVersion());
                         }
                     } else {
                         if (compared == 0) {
-                            mojo.getLog().warn("[UPDATE] Artifact " + a.getGAC() + " is already at version " + a.getVersion() + ", will be not upgraded.");
+                            ctx.getLog().warn("[UPDATE] Artifact " + a.getGAC() + " is already at version " + a.getVersion() + ", will be not upgraded.");
                         }
                     }
                     if (compared != 0) {
@@ -288,21 +290,21 @@ final class MavenUpgrade {
         if (!artifactDependencies.isEmpty() || !featurePackDependencies.isEmpty()) {
             ProvisioningConfig.Builder c = ProvisioningConfig.builder(config);
             if (!featurePackDependencies.isEmpty()) {
-                mojo.getLog().info("[UPDATE] Overriding Galleon feature-pack dependency with: ");
+                ctx.getLog().info("[UPDATE] Overriding Galleon feature-pack dependency with: ");
                 for (FeaturePack fp : featurePackDependencies) {
                     FeaturePackLocation fpl = FeaturePackLocation.fromString(fp.getMavenCoords());
-                    mojo.getLog().info("[UPDATE]  " + fp.getGroupId() + ":" + fp.getArtifactId() + ":"
+                    ctx.getLog().info("[UPDATE]  " + fp.getGroupId() + ":" + fp.getArtifactId() + ":"
                             + (fp.getClassifier() == null ? "" : fp.getClassifier() + ":")
                             + fp.getVersion() + (fp.getExtension() == null ? "" : ":" + fp.getExtension()));
                     c.addTransitiveDep(fpl);
                 }
             }
             if (!artifactDependencies.isEmpty()) {
-                mojo.getLog().info("[UPDATE] Overriding server artifacts with:");
-                if (!mojo.pluginOptions.containsKey("jboss-overridden-artifacts")) {
+                ctx.getLog().info("[UPDATE] Overriding server artifacts with:");
+                if (!ctx.getPluginOptions().containsKey("jboss-overridden-artifacts")) {
                     String updates = toOptionValue(artifactDependencies);
                     for (OverriddenArtifact update : artifactDependencies) {
-                        mojo.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
+                        ctx.getLog().info("[UPDATE]  " + update.getGroupId() + ":" + update.getArtifactId() + ":"
                                 + (update.getClassifier() == null ? "" : update.getClassifier() + ":")
                                 + update.getVersion() + (update.getType() == null ? "" : ":" + update.getType()));
                     }
@@ -317,12 +319,12 @@ final class MavenUpgrade {
 
     void checkScope(Artifact a) {
         if (!"provided".equals(a.getScope())) {
-            mojo.getLog().warn("[UPDATE] Overridden artifact " + a.getGroupId() +":"+ a.getArtifactId()+
+            ctx.getLog().warn("[UPDATE] Overridden artifact " + a.getGroupId() +":"+ a.getArtifactId()+
                     (a.getClassifier() == null ? "" : ":" + a.getClassifier()) + ":" + a.getVersion() + " is not of provided scope.");
         }
     }
 
-    static String locationWithVersion(String featurePackLocation, MavenProjectArtifactVersions artifactVersions) throws MojoExecutionException {
+    public static String locationWithVersion(String featurePackLocation, MavenProjectArtifactVersions artifactVersions) throws MojoExecutionException {
         FeaturePackLocation location = FeaturePackLocation.fromString(featurePackLocation);
         if (location.getUniverse() == null || location.getUniverse().getLocation() == null) {
             FeaturePack fp = getFeaturePack(featurePackLocation);
@@ -355,7 +357,7 @@ final class MavenUpgrade {
         }
     }
 
-    String getMavenFeaturePack(FeaturePackLocation.FPID location) {
+    public String getMavenFeaturePack(FeaturePackLocation.FPID location) {
         String gac = producerToGAC.get(location.getProducer());
         if (gac == null) {
             return location.toString();
@@ -381,13 +383,13 @@ final class MavenUpgrade {
             }
         } catch (ProvisioningException ex) {
             // OK, invalid channel, can occurs for non registered FP that are referenced from GAV.
-            mojo.debug("Invalid channel for %s, the feature-pack is not known in the universe, skipping it.", cfg.getLocation());
+            ctx.debug("Invalid channel for %s, the feature-pack is not known in the universe, skipping it.", cfg.getLocation());
         }
         return null;
     }
 
     //groupId:artifactid[:classfier:extension:][:version]
-    static FeaturePack getFeaturePack(String str) throws MojoExecutionException {
+    public static FeaturePack getFeaturePack(String str) throws MojoExecutionException {
         if (str == null) {
             throw new MojoExecutionException("Null feature-pack coords");
         }
@@ -420,7 +422,7 @@ final class MavenUpgrade {
         return fp;
     }
 
-    static String toOptionValue(List<OverriddenArtifact> lst) throws ProvisioningException {
+    public static String toOptionValue(List<OverriddenArtifact> lst) throws ProvisioningException {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < lst.size(); i++) {
             OverriddenArtifact artifact = lst.get(i);

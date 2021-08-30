@@ -55,6 +55,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.wildfly.core.launcher.ProcessHelper;
 import org.wildfly.plugin.core.ServerHelper;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.BOOTABLE_SUFFIX;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author jdenise
@@ -74,7 +76,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
     private static final String TEST_REPLACE_WF_GROUPID = "WF_GROUPID";
     private static final String TEST_REPLACE_WF_VERSION = "WF_VERSION";
     static final String PLUGIN_VERSION_TEST_REPLACE = "PLUGIN_VERSION";
-    static final String TEST_FILE = "test-" + AbstractBuildBootableJarMojo.BOOTABLE_SUFFIX + ".jar";
+    static final String TEST_FILE = "test-" + BOOTABLE_SUFFIX + ".jar";
     static final String HEALTH = System.getProperty("test.health");
     private final String projectFile;
     private final boolean copyWar;
@@ -118,7 +120,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
         } finally {
             //Delete the build artifact dir
             Path buildArtifacts = getTestDir().resolve("target").resolve("bootable-jar-build-artifacts/");
-            BuildBootableJarMojo.deleteDir(buildArtifacts);
+            Utils.deleteDir(buildArtifacts);
         }
     }
 
@@ -128,7 +130,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
         } finally {
             //Delete the build artifact dir
             Path buildArtifacts = getTestDir().resolve("target").resolve("bootable-jar-build-artifacts/");
-            BuildBootableJarMojo.deleteDir(buildArtifacts);
+            Utils.deleteDir(buildArtifacts);
         }
     }
 
@@ -220,7 +222,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
     protected Path checkAndGetWildFlyHome(Path dir, boolean expectDeployment, boolean isRoot,
                             String[] layers, String[] excludedLayers, boolean stateRecorded, String... configTokens) throws Exception {
         Path tmpDir = Files.createTempDirectory("bootable-jar-test-unzipped");
-        Path wildflyHome = Files.createTempDirectory("bootable-jar-test-unzipped-" + AbstractBuildBootableJarMojo.BOOTABLE_SUFFIX);
+        Path wildflyHome = Files.createTempDirectory("bootable-jar-test-unzipped-" + BOOTABLE_SUFFIX);
         try {
             Path jar = dir.resolve("target").resolve(TEST_FILE);
             assertTrue(Files.exists(jar));
@@ -270,7 +272,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
                 }
             }
         } finally {
-            BuildBootableJarMojo.deleteDir(tmpDir);
+            Utils.deleteDir(tmpDir);
         }
          assertEquals(Files.exists(wildflyHome.resolve(".galleon")), stateRecorded);
          assertEquals(Files.exists(wildflyHome.resolve(".wildfly-jar-plugin-provisioning.xml")), !stateRecorded);
@@ -284,7 +286,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
             wildflyHome = checkAndGetWildFlyHome(dir, expectDeployment, isRoot, layers, excludedLayers, stateRecorded, configTokens);
         } finally {
             if (wildflyHome != null) {
-                BuildBootableJarMojo.deleteDir(wildflyHome);
+                Utils.deleteDir(wildflyHome);
             }
         }
     }

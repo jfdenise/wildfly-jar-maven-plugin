@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.wildfly.plugins.bootablejar.maven.goals;
+package org.wildfly.plugins.bootablejar.maven.common;
 
 import java.util.ArrayList;
 import java.util.Collection;

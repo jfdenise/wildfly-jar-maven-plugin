@@ -18,6 +18,8 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 
 import java.nio.file.Path;
 
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
+
 import org.junit.Test;
 
 /**

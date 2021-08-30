@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
-import org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
 
 /**
  * A CLI executor, that forks CLI execution in a remote process.
@@ -32,18 +32,18 @@ import org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo;
 public class RemoteCLIExecutor implements CLIExecutor {
 
     private final Level level;
-    private final AbstractBuildBootableJarMojo mojo;
+    private final PluginContext ctx;
     private final Path output;
     private final Path jbossHome;
     private final String[] cp;
     private final boolean resolveExpression;
 
-    public RemoteCLIExecutor(Path jbossHome, List<Path> cliArtifacts,
-            AbstractBuildBootableJarMojo mojo, boolean resolveExpression) throws Exception {
-        this.jbossHome = jbossHome;
-        this.mojo = mojo;
+    public RemoteCLIExecutor(PluginContext ctx, List<Path> cliArtifacts,
+            boolean resolveExpression) throws Exception {
+        this.jbossHome = ctx.getJBossHome();
+        this.ctx = ctx;
         this.resolveExpression = resolveExpression;
-        level = mojo.disableLog();
+        level = ctx.disableLog();
         output = File.createTempFile("cli-script-output", null).toPath();
         Files.deleteIfExists(output);
         cp = new String[cliArtifacts.size()];
@@ -73,7 +73,7 @@ public class RemoteCLIExecutor implements CLIExecutor {
         try {
             Files.deleteIfExists(output);
         } finally {
-            mojo.enableLog(level);
+            ctx.enableLog(level);
         }
     }
 
@@ -91,7 +91,7 @@ public class RemoteCLIExecutor implements CLIExecutor {
         args[0] = script.toString();
         args[1] = Boolean.toString(resolveExpression);
         try {
-            ForkedCLIUtil.fork(mojo.getLog(), cp, CLIForkedExecutor.class, jbossHome, output, args);
+            ForkedCLIUtil.fork(ctx.getLog(), cp, CLIForkedExecutor.class, jbossHome, output, args);
         } finally {
             Files.deleteIfExists(script);
         }
@@ -99,6 +99,6 @@ public class RemoteCLIExecutor implements CLIExecutor {
 
     @Override
     public void generateBootLoggingConfig() throws Exception {
-        ForkedCLIUtil.fork(mojo.getLog(), cp, CLIForkedBootConfigGenerator.class, jbossHome, output);
+        ForkedCLIUtil.fork(ctx.getLog(), cp, CLIForkedBootConfigGenerator.class, jbossHome, output);
     }
 }

@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.patching.PatchingTestUtil;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.randomString;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.readFile;
@@ -53,7 +54,7 @@ public class PatchUnexistingMiscTestCase extends AbstractBootableJarMojoTestCase
             checkJar(dir, true, true, null, null, mojo.recordState);
             checkDeployment(dir, true);
         } finally {
-            BuildBootableJarMojo.deleteDir(home);
+            Utils.deleteDir(home);
         }
     }
 }

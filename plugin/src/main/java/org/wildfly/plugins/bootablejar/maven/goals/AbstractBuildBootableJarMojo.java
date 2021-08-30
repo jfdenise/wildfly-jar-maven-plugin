@@ -21,7 +21,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -98,40 +96,40 @@ import org.jboss.galleon.xml.ProvisioningXmlWriter;
 import org.wildfly.plugins.bootablejar.maven.cli.CLIExecutor;
 import org.wildfly.plugins.bootablejar.maven.cli.LocalCLIExecutor;
 import org.wildfly.plugins.bootablejar.maven.cli.RemoteCLIExecutor;
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
+import org.wildfly.plugins.bootablejar.maven.common.BootLoggingConfiguration;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.BOOTABLE_SUFFIX;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.BOOT_ARTIFACT_ID;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JBOSS_MAVEN_DIST;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JBOSS_PROVISIONING_MAVEN_REPO;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.MAVEN_REPO_LOCAL;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.MAVEN_REPO_PLUGIN_OPTION;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.MODULE_ID_JAR_RUNTIME;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.PLUGIN_PROVISIONING_FILE;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.SERVER_CONFIG;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.STANDALONE;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.STANDALONE_MICROPROFILE_XML;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.STANDALONE_XML;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH;
 import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.LegacyPatchCleaner;
 import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
 import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.maven.common.Utils.ProvisioningSpecifics;
-import org.wildfly.security.manager.WildFlySecurityManager;
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenProjectArtifactVersions;
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenUpgrade;
 
 /**
  * Build a bootable JAR containing application and provisioned server
  *
  * @author jfdenise
  */
-public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
+public abstract class AbstractBuildBootableJarMojo extends AbstractMojo implements PluginContext {
 
-    public static final String BOOTABLE_SUFFIX = "bootable";
-    public static final String JAR = "jar";
-    public static final String WAR = "war";
-    private static final String MODULE_ID_JAR_RUNTIME = "org.wildfly.bootable-jar";
-
-    private static final String BOOT_ARTIFACT_ID = "wildfly-jar-boot";
-
-    private static final String STANDALONE = "standalone";
-    private static final String STANDALONE_XML = "standalone.xml";
-    private static final String STANDALONE_MICROPROFILE_XML = "standalone-microprofile.xml";
-    private static final String SERVER_CONFIG = "--server-config";
-    private static final String MAVEN_REPO_PLUGIN_OPTION = "jboss-maven-repo";
-
-    private static final String JBOSS_MAVEN_DIST = "jboss-maven-dist";
-    private static final String JBOSS_PROVISIONING_MAVEN_REPO = "jboss-maven-provisioning-repo";
-    private static final String MAVEN_REPO_LOCAL = "maven.repo.local";
-    private static final String PLUGIN_PROVISIONING_FILE = ".wildfly-jar-plugin-provisioning.xml";
-
-    static final String WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH = "wildfly/artifact-versions.properties";
     @Component
     RepositorySystem repoSystem;
 
@@ -398,6 +396,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
     private Set<String> transformExcluded = new HashSet<>();
     // End EE-9
 
+    @Override
     public Path getJBossHome() {
         return wildflyDir;
     }
@@ -429,7 +428,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
         Path contentRoot = Paths.get(project.getBuild().getDirectory()).resolve(bootableJarBuildArtifacts);
         if (Files.exists(contentRoot)) {
-            deleteDir(contentRoot);
+            Utils.deleteDir(contentRoot);
         }
         Path jarFile = Paths.get(project.getBuild().getDirectory()).resolve(outputFileName);
         IoUtils.recursiveDelete(contentRoot);
@@ -482,14 +481,14 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             // Legacy Patching point
             legacyPatching();
             copyExtraContentInternal(wildflyDir, contentDir);
-            copyExtraContent(wildflyDir);
+            Utils.copyExtraContent(this);
             List<String> commands = new ArrayList<>();
             deploy(commands);
             List<String> serverConfigCommands = new ArrayList<>();
             configureCli(serverConfigCommands);
             commands.addAll(serverConfigCommands);
             if (!commands.isEmpty()) {
-                executeCliScript(wildflyDir, commands, null, false, "Server configuration", true);
+                CliSession.executeCliScript(this, commands, null, false, "Server configuration", true, forkCli, getCLIArtifacts());
                 if (!serverConfigCommands.isEmpty()) {
                     // Store generated commands to file in build artifacts.
                     Path genCliScript = contentRoot.resolve("generated-cli-script.txt");
@@ -502,14 +501,14 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                     getLog().info("Stored CLI script executed to update server configuration in " + genCliScript + " file.");
                 }
             }
-            userScripts(wildflyDir, cliSessions, true);
+            userScripts(cliSessions, true);
 
             Path loggingFile = copyLoggingFile(contentRoot);
             if (bootLoggingConfig == null) {
                 generateLoggingConfig(wildflyDir);
             } else {
                 // Copy the user overridden logging.properties
-                final Path loggingConfig = resolvePath(bootLoggingConfig.toPath());
+                final Path loggingConfig = Utils.resolvePath(project, bootLoggingConfig.toPath());
                 if (Files.notExists(loggingConfig)) {
                     throw new MojoExecutionException(String.format("The bootLoggingConfig %s does not exist.", loggingConfig));
                 }
@@ -581,7 +580,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             String prop = "jboss.home.dir";
             System.setProperty(prop, wildflyDir.toAbsolutePath().toString());
             try {
-                Path patchScript = resolvePath(Paths.get(legacyPatchCliScript));
+                Path patchScript = Utils.resolvePath(project, Paths.get(legacyPatchCliScript));
                 if (Files.notExists(patchScript)) {
                     throw new Exception("Patch CLI script " + patchScript + " doesn't exist");
                 }
@@ -593,35 +592,13 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 patchingSession.setScriptFiles(files);
                 cliPatchingSessions.add(patchingSession);
                 getLog().info("Patching server with " + patchScript + " CLI script.");
-                userScripts(wildflyDir, cliPatchingSessions, false);
+                userScripts(cliPatchingSessions, false);
                 if (patchCleaner != null) {
                     patchCleaner.clean();
                 }
             } finally {
                 System.clearProperty(prop);
             }
-        }
-    }
-
-    private void copyExtraContent(Path wildflyDir) throws Exception {
-        for (String path : extraServerContentDirs) {
-            Path extraContent = Paths.get(path);
-            extraContent = resolvePath(extraContent);
-            if (Files.notExists(extraContent)) {
-                throw new Exception("Extra content dir " + extraContent + " doesn't exist");
-            }
-            // Check for the presence of a standalone.xml file
-            warnExtraConfig(extraContent);
-            IoUtils.copy(extraContent, wildflyDir);
-        }
-
-    }
-
-    private void warnExtraConfig(Path extraContentDir) {
-        Path config = extraContentDir.resolve(STANDALONE).resolve("configurations").resolve(STANDALONE_XML);
-        if (Files.exists(config)) {
-            getLog().warn("The file " + config + " overrides the Galleon generated configuration, "
-                    + "un-expected behavior can occur when starting the bootable JAR");
         }
     }
 
@@ -671,51 +648,15 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         return f;
     }
 
-    private void userScripts(Path wildflyDir, List<CliSession> sessions, boolean startEmbedded) throws Exception {
-        for (CliSession session : sessions) {
-            List<String> commands = new ArrayList<>();
-            for (String path : session.getScriptFiles()) {
-                File f = new File(path);
-                Path filePath = resolvePath(f.toPath());
-                if (Files.notExists(filePath)) {
-                    throw new RuntimeException("Cli script file " + filePath + " doesn't exist");
-                }
-                try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
-                    String line = reader.readLine();
-                    while (line != null) {
-                        commands.add(line.trim());
-                        line = reader.readLine();
-                    }
-                }
-            }
-            if(!commands.isEmpty()) {
-                executeCliScript(wildflyDir, commands, session.getPropertiesFile(),
-                        session.getResolveExpression(), session.toString(), startEmbedded);
-            }
-        }
-    }
-
-    private void executeCliScript(Path jbossHome, List<String> commands, String propertiesFile,
-            boolean resolveExpression, String message, boolean startEmbedded) throws Exception {
-        getLog().info("Executing CLI, " + message);
-        Properties props = null;
-        if (propertiesFile != null) {
-            props = loadProperties(propertiesFile);
-        }
-        try {
-            processCLI(jbossHome, commands, resolveExpression, startEmbedded);
-        } finally {
-            if (props != null) {
-                for (String key : props.stringPropertyNames()) {
-                    WildFlySecurityManager.clearPropertyPrivileged(key);
-                }
-            }
+    private void userScripts(List<CliSession> sessions, boolean startEmbedded) throws Exception {
+        for (CliSession s : sessions) {
+            s.execute(this, startEmbedded, forkCli, getCLIArtifacts());
         }
     }
 
     private void generateLoggingConfig(final Path wildflyDir) throws Exception {
-        try (CLIExecutor cmdCtx = forkCli ? new RemoteCLIExecutor(wildflyDir, getCLIArtifacts(), this, false)
-                : new LocalCLIExecutor(wildflyDir, getCLIArtifacts(), this, false, bootLoggingConfiguration)) {
+        try (CLIExecutor cmdCtx = forkCli ? new RemoteCLIExecutor(this, getCLIArtifacts(), false)
+                : new LocalCLIExecutor(this, getCLIArtifacts(), false, bootLoggingConfiguration)) {
             try {
                 cmdCtx.generateBootLoggingConfig();
             } catch (Exception e) {
@@ -723,36 +664,6 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 throw e;
             }
         }
-    }
-
-    private void processCLI(Path jbossHome, List<String> commands,
-            boolean resolveExpression, boolean startEmbedded) throws Exception {
-
-        List<String> allCommands = new ArrayList<>();
-        if (startEmbedded) {
-            allCommands.add("embed-server --jboss-home=" + jbossHome + " --std-out=discard");
-        }
-        for (String line : commands) {
-            allCommands.add(line.trim());
-        }
-        if (startEmbedded) {
-            allCommands.add("stop-embedded-server");
-        }
-        try (CLIExecutor executor = forkCli ? new RemoteCLIExecutor(jbossHome, getCLIArtifacts(), this, resolveExpression)
-                : new LocalCLIExecutor(jbossHome, getCLIArtifacts(), this, resolveExpression, bootLoggingConfiguration)) {
-
-            try {
-                executor.execute(allCommands);
-            } catch (Exception ex) {
-                getLog().error("Error executing CLI script " + ex.getLocalizedMessage());
-                getLog().error(executor.getOutput());
-                throw ex;
-            }
-            if (displayCliScriptsOutput) {
-                getLog().info(executor.getOutput());
-            }
-        }
-        getLog().info("CLI scripts execution done.");
     }
 
     private List<Path> getCLIArtifacts() throws MojoExecutionException {
@@ -765,6 +676,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         return paths;
     }
 
+    @Override
     public Level disableLog() {
         Logger l = Logger.getLogger("");
         Level level = l.getLevel();
@@ -775,36 +687,10 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         return level;
     }
 
+    @Override
     public void enableLog(Level level) {
         Logger l = Logger.getLogger("");
         l.setLevel(level);
-    }
-
-    private Path resolvePath(Path path) {
-        if (!path.isAbsolute()) {
-            path = Paths.get(project.getBasedir().getAbsolutePath()).resolve(path);
-        }
-        return path;
-    }
-
-    private Properties loadProperties(String propertiesFile) throws Exception {
-        File f = new File(propertiesFile);
-        Path filePath = resolvePath(f.toPath());
-        if (Files.notExists(filePath)) {
-            throw new RuntimeException("Cli properties file " + filePath + " doesn't exist");
-        }
-        final Properties props = new Properties();
-        try (InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(filePath.toFile()),
-                StandardCharsets.UTF_8)) {
-            props.load(inputStreamReader);
-        } catch (IOException e) {
-            throw new Exception(
-                    "Failed to load properties from " + propertiesFile + ": " + e.getLocalizedMessage());
-        }
-        for (String key : props.stringPropertyNames()) {
-            WildFlySecurityManager.setPropertyPrivileged(key, props.getProperty(key));
-        }
-        return props;
     }
 
     private File getProjectFile() {
@@ -823,7 +709,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
     }
 
     protected Path getProvisioningFile() {
-        return resolvePath(provisioningFile.toPath());
+        return Utils.resolvePath(project, provisioningFile.toPath());
     }
 
     protected boolean hasLayers() {
@@ -1172,13 +1058,13 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                     Path artifactProps = fprt.getResource(WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH);
                     final Map<String, String> propsMap = new HashMap<>();
                     try {
-                        readProperties(artifactProps, propsMap);
+                        Utils.readProperties(artifactProps, propsMap);
                     } catch (Exception ex) {
                         throw new MojoExecutionException("Error reading artifact versions", ex);
                     }
                     for(Entry<String,String> entry : propsMap.entrySet()) {
                         String value = entry.getValue();
-                        Artifact a = getArtifact(value);
+                        Artifact a = Utils.getArtifact(value);
                         if ( BOOT_ARTIFACT_ID.equals(a.getArtifactId())) {
                             // We got it.
                             getLog().info("Found boot artifact " + a + " in " + mavenUpgrade.getMavenFeaturePack(fprt.getFPID()));
@@ -1191,7 +1077,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 Path artifactProps = fprt.getResource(WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH);
                 final Map<String, String> propsMap = new HashMap<>();
                 try {
-                    readProperties(artifactProps, propsMap);
+                    Utils.readProperties(artifactProps, propsMap);
                 } catch (Exception ex) {
                     throw new MojoExecutionException("Error reading artifact versions", ex);
                 }
@@ -1200,7 +1086,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 Path tasksProps = fprt.getResource("wildfly/wildfly-tasks.properties");
                 final Map<String, String> tasksMap = new HashMap<>();
                 try {
-                    readProperties(tasksProps, tasksMap);
+                    Utils.readProperties(tasksProps, tasksMap);
                 } catch (Exception ex) {
                     throw new MojoExecutionException("Error reading artifact versions", ex);
                 }
@@ -1220,7 +1106,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 // End EE-9
                 for (Entry<String, String> entry : propsMap.entrySet()) {
                     String value = entry.getValue();
-                    Artifact a = getArtifact(value);
+                    Artifact a = Utils.getArtifact(value);
                     if ("wildfly-cli".equals(a.getArtifactId())
                             && "org.wildfly.core".equals(a.getGroupId())) {
                         // We got it.
@@ -1275,39 +1161,48 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
     }
 
+    @Override
+    public MavenProjectArtifactVersions getArtifactVersions() {
+        return artifactVersions;
+    }
+
+    @Override
+    public List<OverriddenArtifact> getOverriddenServerArtifacts() {
+        return overriddenServerArtifacts;
+    }
+
+    @Override
+    public Map<String, String> getPluginOptions() {
+        return pluginOptions;
+    }
+
+    @Override
+    public boolean isWarnForArtifactDowngradeDisabled() {
+        return disableWarnForArtifactDowngrade;
+    }
+
+    @Override
+    public MavenProject getProject() {
+        return project;
+    }
+
+    @Override
+    public BootLoggingConfiguration getBootLoggingConfiguration() {
+        return bootLoggingConfiguration;
+    }
+
+    @Override
+    public boolean isDisplayCliScriptsOutputEnabled() {
+        return displayCliScriptsOutput;
+    }
+
+    @Override
+    public List<String> getExtraServerContentDirs() {
+        return extraServerContentDirs;
+    }
+
     protected ConfigId getDefaultConfig() {
         return new ConfigId(STANDALONE, STANDALONE_MICROPROFILE_XML);
-    }
-
-    // Get Artifact, syntax comply with WildFly feature-pack versions file.
-    static Artifact getArtifact(String str) {
-        final String[] parts = str.split(":");
-        final String groupId = parts[0];
-        final String artifactId = parts[1];
-        String version = parts[2];
-        String classifier = parts[3];
-        String extension = parts[4];
-
-        return new DefaultArtifact(groupId, artifactId, version,
-                "provided", extension, classifier,
-                new DefaultArtifactHandler(extension));
-    }
-
-    static void readProperties(Path propsFile, Map<String, String> propsMap) throws Exception {
-        try (BufferedReader reader = Files.newBufferedReader(propsFile)) {
-            String line = reader.readLine();
-            while (line != null) {
-                line = line.trim();
-                if (!line.isEmpty() && line.charAt(0) != '#') {
-                    final int i = line.indexOf('=');
-                    if (i < 0) {
-                        throw new Exception("Failed to parse property " + line + " from " + propsFile);
-                    }
-                    propsMap.put(line.substring(0, i), line.substring(i + 1));
-                }
-                line = reader.readLine();
-            }
-        }
     }
 
     private void deploy(List<String> commands) throws MojoExecutionException {
@@ -1383,6 +1278,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
     }
 
+    @Override
     public String retrievePluginVersion() throws PlexusConfigurationException, MojoExecutionException {
         InputStream is = getClass().getResourceAsStream("/META-INF/maven/plugin.xml");
         if (is == null) {
@@ -1393,6 +1289,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         return pluginDescriptor.getVersion();
     }
 
+    @Override
     public Path resolveArtifact(String groupId, String artifactId, String classifier, String version) throws UnsupportedEncodingException,
             PlexusConfigurationException, MojoExecutionException {
         return resolveArtifact(new DefaultArtifact(groupId, artifactId, version,
@@ -1479,47 +1376,15 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         projectHelper.attachArtifact(project, JAR, BOOTABLE_SUFFIX, jarFile.toFile());
     }
 
-    void debug(String msg, Object... args) {
+    @Override
+    public void debug(String msg, Object... args) {
         if (getLog().isDebugEnabled()) {
             getLog().debug(String.format(msg, args));
         }
     }
 
-    static void deleteDir(Path root) {
-        if (root == null || Files.notExists(root)) {
-            return;
-        }
-        try {
-            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                        throws IOException {
-                    try {
-                        Files.delete(file);
-                    } catch (IOException ex) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException e)
-                        throws IOException {
-                    if (e != null) {
-                        // directory iteration failed
-                        throw e;
-                    }
-                    try {
-                        Files.delete(dir);
-                    } catch (IOException ex) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-        }
-    }
-
-    Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
+    @Override
+    public Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
         final MavenArtifact artifact = new MavenArtifact()
                 .setGroupId(coordinate.getGroupId())
                 .setArtifactId(coordinate.getArtifactId())

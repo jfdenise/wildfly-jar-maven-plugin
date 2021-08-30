@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.cli;
 
+import org.wildfly.plugins.bootablejar.maven.common.BootLoggingConfiguration;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
@@ -23,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.wildfly.plugins.bootablejar.maven.goals.BootLoggingConfiguration;
 
 /**
  * A CLI executor, resolving CLI classes from the provided Classloader. We can't

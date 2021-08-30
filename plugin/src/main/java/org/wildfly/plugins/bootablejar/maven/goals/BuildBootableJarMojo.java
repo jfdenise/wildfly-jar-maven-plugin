@@ -62,7 +62,7 @@ public class BuildBootableJarMojo extends AbstractBuildBootableJarMojo {
             if (cloud != null) {
                 getLog().info("Cloud support is enabled");
                 cloud.validate();
-                for (String layer : cloud.getExtraLayers(this, specifics.getHealthLayer(), getLog())) {
+                for (String layer : cloud.getExtraLayers(specifics.getHealthLayer(), getLog())) {
                     addExtraLayer(layer);
                 }
             }

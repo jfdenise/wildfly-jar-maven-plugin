@@ -17,15 +17,13 @@
  * limitations under the License.
  */
 
-package org.wildfly.plugins.bootablejar.maven.goals;
+package org.wildfly.plugins.bootablejar.maven.common;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-
-import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>

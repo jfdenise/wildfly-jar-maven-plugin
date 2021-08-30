@@ -24,6 +24,7 @@ import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.metadata.ContentModification;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.patching.ContentModificationUtils;
 import org.wildfly.plugins.bootablejar.patching.Module;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.AS_DISTRIBUTION;
@@ -82,7 +83,7 @@ public class PatchExistingModuleTestCase extends AbstractBootableJarMojoTestCase
             checkJar(dir, true, true, null, null, mojo.recordState);
             checkDeployment(dir, true);
         } finally {
-            BuildBootableJarMojo.deleteDir(home);
+            Utils.deleteDir(home);
         }
     }
 }

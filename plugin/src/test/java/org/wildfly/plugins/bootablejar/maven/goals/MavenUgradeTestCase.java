@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenUpgrade;
 
 public class MavenUgradeTestCase {
 

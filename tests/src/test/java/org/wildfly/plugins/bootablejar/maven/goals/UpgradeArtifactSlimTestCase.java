@@ -16,6 +16,7 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import org.wildfly.plugins.bootablejar.maven.upgrade.MavenProjectArtifactVersions;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -23,6 +24,7 @@ import org.apache.maven.artifact.Artifact;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author jdenise
@@ -56,7 +58,7 @@ public class UpgradeArtifactSlimTestCase extends AbstractBootableJarMojoTestCase
             Path undertow = modulesDir.resolve("io").resolve("undertow").resolve("core").resolve("main").resolve("undertow-core-" + undertowVersion + ".jar");
             Assert.assertFalse(undertow.toString(), Files.exists(undertow));
         } finally {
-            BuildBootableJarMojo.deleteDir(unzippedJar);
+            Utils.deleteDir(unzippedJar);
         }
         checkJar(dir, true, true, layers, null, mojo.recordState);
         checkDeployment(dir, true);
