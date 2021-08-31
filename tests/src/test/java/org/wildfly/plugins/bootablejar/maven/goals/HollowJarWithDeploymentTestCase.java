@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class HollowJarWithDeploymentTestCase extends AbstractBootableJarMojoTestCase {
+public class HollowJarWithDeploymentTestCase extends BootableJarMojoTest {
 
     public HollowJarWithDeploymentTestCase() {
         super("test9-pom.xml", true, null);

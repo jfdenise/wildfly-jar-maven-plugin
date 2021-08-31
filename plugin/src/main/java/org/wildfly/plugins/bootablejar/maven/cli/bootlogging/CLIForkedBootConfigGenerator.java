@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.plugins.bootablejar.maven.cli;
+package org.wildfly.plugins.bootablejar.maven.cli.bootlogging;
 
 import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +42,7 @@ public class CLIForkedBootConfigGenerator {
                 System.setProperty(key, properties.getProperty(key));
             }
         }
-        try (CLIWrapper executor = new CLIWrapper(jbossHome, false, CLIForkedBootConfigGenerator.class.getClassLoader(), new BootLoggingConfiguration())) {
+        try (CLIWrapperBootLogging executor = new CLIWrapperBootLogging(jbossHome, false, CLIForkedBootConfigGenerator.class.getClassLoader(), new BootLoggingConfiguration())) {
             try {
                 executor.generateBootLoggingConfig();
             } finally {

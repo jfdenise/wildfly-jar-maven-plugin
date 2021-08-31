@@ -34,7 +34,7 @@ import org.wildfly.plugins.bootablejar.patching.ResourceItem;
 /**
  * @author jdenise
  */
-public class PatchUnexistingFailModuleTestCase extends AbstractBootableJarMojoTestCase {
+public class PatchUnexistingFailModuleTestCase extends BootableJarMojoTest {
 
     public PatchUnexistingFailModuleTestCase() {
         super("test15-pom.xml", true, null);

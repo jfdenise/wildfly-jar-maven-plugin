@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidExcludeRequiredLayerTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidExcludeRequiredLayerTestCase extends BootableJarMojoTest {
     public InvalidExcludeRequiredLayerTestCase() {
         super("invalid6-pom.xml", true, null);
     }

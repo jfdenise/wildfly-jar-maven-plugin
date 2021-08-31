@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.patching.Module;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.FILE_SEPARATOR;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.RELATIVE_MODULES_PATH;
@@ -33,7 +34,7 @@ import org.wildfly.plugins.bootablejar.patching.ResourceItem;
 /**
  * @author jdenise
  */
-public class PatchAddModuleTestCase extends AbstractBootableJarMojoTestCase {
+public class PatchAddModuleTestCase extends BootableJarMojoTest {
     public PatchAddModuleTestCase() {
         super("test15-pom.xml", true, null);
     }
@@ -69,7 +70,7 @@ public class PatchAddModuleTestCase extends AbstractBootableJarMojoTestCase {
             checkJar(dir, true, true, null, null, mojo.recordState);
             checkDeployment(dir, true);
         } finally {
-            BuildBootableJarMojo.deleteDir(home);
+            Utils.deleteDir(home);
         }
     }
 }

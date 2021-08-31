@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidProvisioningFileandLayersTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidProvisioningFileandLayersTestCase extends BootableJarMojoTest {
     public InvalidProvisioningFileandLayersTestCase() {
         super("invalid3-pom.xml", true, "provisioning1.xml");
     }

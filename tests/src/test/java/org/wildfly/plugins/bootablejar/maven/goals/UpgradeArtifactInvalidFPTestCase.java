@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class UpgradeArtifactInvalidFPTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactInvalidFPTestCase extends BootableJarMojoTest {
 
     public UpgradeArtifactInvalidFPTestCase() {
         super("invalid-fp-upgrade-artifact-pom.xml", true, null);

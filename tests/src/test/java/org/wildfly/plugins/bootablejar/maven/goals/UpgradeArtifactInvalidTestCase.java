@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class UpgradeArtifactInvalidTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactInvalidTestCase extends BootableJarMojoTest {
 
     public UpgradeArtifactInvalidTestCase() {
         super("invalid-upgrade-artifact-pom.xml", true, null);

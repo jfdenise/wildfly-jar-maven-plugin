@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DefaultCloudConfigurationWithFPTestCase extends AbstractBootableJarMojoTestCase {
+public class DefaultCloudConfigurationWithFPTestCase extends BootableJarMojoTest {
 
     public DefaultCloudConfigurationWithFPTestCase() {
         super("test19-pom.xml", true, null);

@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class WebServicesTestCase extends AbstractBootableJarMojoTestCase {
+public class WebServicesTestCase extends BootableJarMojoTest {
 
     public WebServicesTestCase() {
         super("test22-pom.xml", true, null);

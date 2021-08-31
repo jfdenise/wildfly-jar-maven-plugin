@@ -24,11 +24,12 @@ import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 
 /**
  * @author jdenise
  */
-public class UpgradeArtifactVersOverrideTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactVersOverrideTestCase extends BootableJarMojoTest {
 
     public UpgradeArtifactVersOverrideTestCase() {
         super("upgrade-artifact-vers-override-pom.xml", true, null);
@@ -76,7 +77,7 @@ public class UpgradeArtifactVersOverrideTestCase extends AbstractBootableJarMojo
             Path ee = modulesDir.resolve("org").resolve("jboss").resolve("as").resolve("ee").resolve("main").resolve("wildfly-ee-" + wildflyeeVersion + ".jar");
             Assert.assertTrue(ee.toString(), Files.exists(ee));
         } finally {
-            BuildBootableJarMojo.deleteDir(unzippedJar);
+            Utils.deleteDir(unzippedJar);
         }
         checkJar(dir, true, true, layers, null, mojo.recordState);
         checkDeployment(dir, true);

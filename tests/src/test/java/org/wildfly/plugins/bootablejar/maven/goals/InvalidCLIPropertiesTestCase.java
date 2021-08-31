@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidCLIPropertiesTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidCLIPropertiesTestCase extends BootableJarMojoTest {
     public InvalidCLIPropertiesTestCase() {
         super("invalid10-pom.xml", true, null, "add-prop.cli");
     }

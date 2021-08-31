@@ -25,7 +25,7 @@ import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.randomSt
 /**
  * @author jdenise
  */
-public class PatchUnexistingFailMiscTestCase extends AbstractBootableJarMojoTestCase {
+public class PatchUnexistingFailMiscTestCase extends BootableJarMojoTest {
     public PatchUnexistingFailMiscTestCase() {
         super("test15-pom.xml", true, null);
     }

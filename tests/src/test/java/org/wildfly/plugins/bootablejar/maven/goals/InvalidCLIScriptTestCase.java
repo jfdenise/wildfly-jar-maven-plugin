@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidCLIScriptTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidCLIScriptTestCase extends BootableJarMojoTest {
     public InvalidCLIScriptTestCase() {
         super("invalid9-pom.xml", true, null, "add-prop.cli");
     }

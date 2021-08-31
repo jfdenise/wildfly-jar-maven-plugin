@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DefaultConfigurationSecurityManagerTestCase extends AbstractBootableJarMojoTestCase {
+public class DefaultConfigurationSecurityManagerTestCase extends BootableJarMojoTest {
 
     public DefaultConfigurationSecurityManagerTestCase() {
         super("test1-pom.xml", true, null);

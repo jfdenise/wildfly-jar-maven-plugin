@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class ProvisioningConfigurationTestCase extends AbstractBootableJarMojoTestCase {
+public class ProvisioningConfigurationTestCase extends BootableJarMojoTest {
 
     public ProvisioningConfigurationTestCase() {
         super("test4-pom.xml", true, "provisioning1.xml");

@@ -18,13 +18,14 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.wildfly.plugins.bootablejar.maven.test.TestEnvironment;
 
 import org.junit.Test;
 
 /**
  * @author jdenise
  */
-public class CLIScriptBootTestCase extends AbstractBootableJarMojoTestCase {
+public class CLIScriptBootTestCase extends BootableJarMojoTest {
 
     public CLIScriptBootTestCase() {
         super("test7-pom.xml", true, null);

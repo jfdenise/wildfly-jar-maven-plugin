@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class LayersConfigurationTestCase extends AbstractBootableJarMojoTestCase {
+public class LayersConfigurationTestCase extends BootableJarMojoTest {
 
     public LayersConfigurationTestCase() {
         super("test8-pom.xml", true, null);

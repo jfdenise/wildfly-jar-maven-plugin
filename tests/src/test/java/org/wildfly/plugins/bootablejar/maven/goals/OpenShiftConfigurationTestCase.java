@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class OpenShiftConfigurationTestCase extends AbstractBootableJarMojoTestCase {
+public class OpenShiftConfigurationTestCase extends BootableJarMojoTest {
 
     public OpenShiftConfigurationTestCase() {
         super("test10-pom.xml", true, null);

@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class IncludedDefaultConfigurationNoLayersTestCase extends AbstractBootableJarMojoTestCase {
+public class IncludedDefaultConfigurationNoLayersTestCase extends BootableJarMojoTest {
 
     public IncludedDefaultConfigurationNoLayersTestCase() {
         super("test17-pom.xml", true, null);

@@ -25,14 +25,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import org.jboss.as.controller.client.ModelControllerClient;
-
+import org.wildfly.plugins.bootablejar.maven.test.TestEnvironment;
 import org.wildfly.plugin.core.ServerHelper;
 import static org.wildfly.plugins.bootablejar.maven.goals.DevWatchBootableJarMojo.TEST_PROPERTY_EXIT;
 
 /**
  * @author jdenise
  */
-public abstract class AbstractDevWatchTestCase extends AbstractBootableJarMojoTestCase {
+public abstract class AbstractDevWatchTestCase extends BootableJarMojoTest {
 
     static final String RESOURCES_MARKER = "<!-- ###RESOURCES### !-->";
     static final String UPDATED_LAYERS_MARKER = "<!-- ###LAYERS### !-->";

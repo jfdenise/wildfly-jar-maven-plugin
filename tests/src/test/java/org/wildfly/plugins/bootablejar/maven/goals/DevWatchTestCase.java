@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import org.wildfly.plugins.bootablejar.maven.test.TestEnvironment;
 import org.junit.Test;
 import org.junit.Assume;
 /**

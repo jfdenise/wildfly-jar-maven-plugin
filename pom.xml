@@ -62,6 +62,7 @@
     <version.org.jboss.galleon>4.2.8.Final</version.org.jboss.galleon>
     <version.org.wildfly.core.wildfly-core>16.0.0.Final</version.org.wildfly.core.wildfly-core>
     <version.org.wildfly.common>1.5.4.Final</version.org.wildfly.common>
+    <version.org.wildfly.plugins.wildfly-jar-maven-plugin-common>1.0.0.Final-SNAPSHOT</version.org.wildfly.plugins.wildfly-jar-maven-plugin-common>
     <version.org.wildfly.plugins.wildfly-maven-plugin>2.0.1.Final</version.org.wildfly.plugins.wildfly-maven-plugin>
     <!-- required by tests -->
     <version.org.apache.httpcomponents.httpclient>4.5.13</version.org.apache.httpcomponents.httpclient>
@@ -141,7 +142,16 @@
 
   <dependencyManagement>
     <dependencies>
-     
+     <dependency>
+         <groupId>org.wildfly.plugins</groupId>
+         <artifactId>wildfly-jar-maven-plugin-common</artifactId>
+         <version>${version.org.wildfly.plugins.wildfly-jar-maven-plugin-common}</version>
+     </dependency>
+     <dependency>
+         <groupId>org.wildfly.plugins</groupId>
+         <artifactId>wildfly-jar-maven-plugin-tests-common</artifactId>
+         <version>${version.org.wildfly.plugins.wildfly-jar-maven-plugin-common}</version>
+     </dependency>
      <dependency>
         <groupId>org.twdata.maven</groupId>
         <artifactId>mojo-executor</artifactId>

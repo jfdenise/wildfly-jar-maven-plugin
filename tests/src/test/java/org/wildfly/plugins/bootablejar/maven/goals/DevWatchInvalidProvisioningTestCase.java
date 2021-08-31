@@ -19,6 +19,7 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Assume;
+import org.wildfly.plugins.bootablejar.maven.test.TestEnvironment;
 
 import org.junit.Test;
 

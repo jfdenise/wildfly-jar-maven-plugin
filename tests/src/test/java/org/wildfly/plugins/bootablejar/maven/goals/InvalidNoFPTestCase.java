@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidNoFPTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidNoFPTestCase extends BootableJarMojoTest {
     public InvalidNoFPTestCase() {
         super("invalid1-pom.xml", true, null);
     }

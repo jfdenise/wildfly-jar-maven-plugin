@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidUnkonwnLayerTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidUnkonwnLayerTestCase extends BootableJarMojoTest {
     public InvalidUnkonwnLayerTestCase() {
         super("invalid4-pom.xml", true, null);
     }

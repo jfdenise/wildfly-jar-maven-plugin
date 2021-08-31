@@ -39,8 +39,9 @@ import java.util.Set;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.ProjectBuildingException;
 import org.jboss.galleon.util.IoUtils;
-import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.JAR;
-import static org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo.WAR;
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WAR;
 
 /**
  *

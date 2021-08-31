@@ -24,7 +24,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class UpgradeArtifactUnknownArtifactTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactUnknownArtifactTestCase extends BootableJarMojoTest {
 
     public UpgradeArtifactUnknownArtifactTestCase() {
         super("invalid-upgrade-unknown-artifact-pom.xml", true, null);

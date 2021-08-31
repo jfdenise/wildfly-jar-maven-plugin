@@ -19,11 +19,12 @@ package org.wildfly.plugins.bootablejar.maven.goals;
 import java.nio.file.Path;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
 
 /**
  * @author jdenise
  */
-public class LayersOverrideProvisioningConfigurationTestCase extends AbstractBootableJarMojoTestCase {
+public class LayersOverrideProvisioningConfigurationTestCase extends BootableJarMojoTest {
 
     public LayersOverrideProvisioningConfigurationTestCase() {
         super("test2-pom.xml", true, "provisioning1.xml", "add-prop.cli", "add-prop2.cli");

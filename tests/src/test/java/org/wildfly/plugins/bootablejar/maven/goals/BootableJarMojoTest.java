@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Red Hat, Inc. and/or its affiliates
+ * Copyright 2021 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,25 +16,19 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
-import java.nio.file.Files;
-
-import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.test.AbstractBootableJarMojoTestCase;
 
 /**
+ *
  * @author jdenise
  */
-public class SkipTestCase extends BootableJarMojoTest {
+abstract class BootableJarMojoTest extends AbstractBootableJarMojoTestCase {
+    private static final String ARTIFACTID = "wildfly-jar-maven-plugin";
 
-    public SkipTestCase() {
-        super("test5-pom.xml", false, null);
+    protected BootableJarMojoTest(String pomFileName, boolean copyWar, String provisioning, String... cli) {
+        super(ARTIFACTID, pomFileName, copyWar, provisioning, cli);
     }
-
-    @Test
-    public void testSkip() throws Exception {
-        BuildBootableJarMojo mojo = lookupMojo("package");
-        assertNotNull(mojo);
-        assertTrue(mojo.skip);
-        mojo.execute();
-        assertFalse(Files.exists(getTestDir().resolve("target").resolve(TEST_FILE)));
-    }
+     protected BootableJarMojoTest(final String pomFileName, String testName, final boolean copyWar, final String provisioning, final String... cli) {
+         super(ARTIFACTID, pomFileName, testName, copyWar, provisioning, cli);
+     }
 }

@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.Test;
+import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.patching.PatchingTestUtil;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.randomString;
 import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.readFile;
@@ -27,7 +28,7 @@ import static org.wildfly.plugins.bootablejar.patching.PatchingTestUtil.readFile
 /**
  * @author jdenise
  */
-public class PatchUnexistingMiscTestCase extends AbstractBootableJarMojoTestCase {
+public class PatchUnexistingMiscTestCase extends BootableJarMojoTest {
     public PatchUnexistingMiscTestCase() {
         super("test15-pom.xml", true, null);
     }
@@ -53,7 +54,7 @@ public class PatchUnexistingMiscTestCase extends AbstractBootableJarMojoTestCase
             checkJar(dir, true, true, null, null, mojo.recordState);
             checkDeployment(dir, true);
         } finally {
-            BuildBootableJarMojo.deleteDir(home);
+            Utils.deleteDir(home);
         }
     }
 }

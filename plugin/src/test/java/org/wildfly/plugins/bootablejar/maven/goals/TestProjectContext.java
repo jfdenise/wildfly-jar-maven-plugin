@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.ProjectBuildingException;
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
 
 /**
  *

@@ -21,7 +21,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class InvalidSwappingLayerTestCase extends AbstractBootableJarMojoTestCase {
+public class InvalidSwappingLayerTestCase extends BootableJarMojoTest {
     public InvalidSwappingLayerTestCase() {
         super("invalid8-pom.xml", true, null);
     }

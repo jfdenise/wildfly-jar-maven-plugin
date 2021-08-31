@@ -16,12 +16,10 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,12 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.inject.Inject;
@@ -72,66 +65,51 @@ import org.codehaus.plexus.configuration.PlexusConfigurationException;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.jboss.galleon.Constants;
-import org.jboss.galleon.Errors;
-import org.jboss.galleon.ProvisioningDescriptionException;
 import org.jboss.galleon.ProvisioningException;
 import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ConfigId;
-import org.jboss.galleon.config.ConfigModel;
-import org.jboss.galleon.config.FeaturePackConfig;
 import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.maven.plugin.util.MavenArtifactRepositoryManager;
 import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.runtime.FeaturePackRuntime;
 import org.jboss.galleon.runtime.ProvisioningRuntime;
-import org.jboss.galleon.universe.FeaturePackLocation;
 import org.jboss.galleon.universe.maven.MavenArtifact;
 import org.jboss.galleon.universe.maven.MavenUniverseException;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
-import org.jboss.galleon.util.CollectionUtils;
 import org.jboss.galleon.util.IoUtils;
 import org.jboss.galleon.util.ZipUtils;
-import org.jboss.galleon.xml.ProvisioningXmlParser;
 import org.jboss.galleon.xml.ProvisioningXmlWriter;
 
-import org.wildfly.plugins.bootablejar.maven.cli.CLIExecutor;
-import org.wildfly.plugins.bootablejar.maven.cli.LocalCLIExecutor;
-import org.wildfly.plugins.bootablejar.maven.cli.RemoteCLIExecutor;
+import org.wildfly.plugins.bootablejar.maven.cli.bootlogging.LocalCLIExecutorBootLogging;
+import org.wildfly.plugins.bootablejar.maven.cli.bootlogging.RemoteCLIExecutorBootLogging;
+import org.wildfly.plugins.bootablejar.maven.cli.CliSession;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.BOOTABLE_SUFFIX;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.BOOT_ARTIFACT_ID;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.JAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.MODULE_ID_JAR_RUNTIME;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.PLUGIN_PROVISIONING_FILE;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.STANDALONE;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.STANDALONE_MICROPROFILE_XML;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WAR;
+import static org.wildfly.plugins.bootablejar.maven.common.Constants.WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH;
 import org.wildfly.plugins.bootablejar.maven.common.FeaturePack;
 import org.wildfly.plugins.bootablejar.maven.common.LegacyPatchCleaner;
 import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
+import org.wildfly.plugins.bootablejar.maven.common.PluginContext;
 import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.maven.common.Utils.ProvisioningSpecifics;
-import org.wildfly.security.manager.WildFlySecurityManager;
+import org.wildfly.plugins.bootablejar.maven.cli.bootlogging.CLIExecutorBootLogging;
+import org.wildfly.plugins.bootablejar.maven.common.GalleonConfigBuilder;
+import org.wildfly.plugins.bootablejar.maven.common.JakartaEE9Handler;
 
 /**
  * Build a bootable JAR containing application and provisioned server
  *
  * @author jfdenise
  */
-public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
+public abstract class AbstractBuildBootableJarMojo extends AbstractMojo implements PluginContext {
 
-    public static final String BOOTABLE_SUFFIX = "bootable";
-    public static final String JAR = "jar";
-    public static final String WAR = "war";
-    private static final String MODULE_ID_JAR_RUNTIME = "org.wildfly.bootable-jar";
-
-    private static final String BOOT_ARTIFACT_ID = "wildfly-jar-boot";
-
-    private static final String STANDALONE = "standalone";
-    private static final String STANDALONE_XML = "standalone.xml";
-    private static final String STANDALONE_MICROPROFILE_XML = "standalone-microprofile.xml";
-    private static final String SERVER_CONFIG = "--server-config";
-    private static final String MAVEN_REPO_PLUGIN_OPTION = "jboss-maven-repo";
-
-    private static final String JBOSS_MAVEN_DIST = "jboss-maven-dist";
-    private static final String JBOSS_PROVISIONING_MAVEN_REPO = "jboss-maven-provisioning-repo";
-    private static final String MAVEN_REPO_LOCAL = "maven.repo.local";
-    private static final String PLUGIN_PROVISIONING_FILE = ".wildfly-jar-plugin-provisioning.xml";
-
-    static final String WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH = "wildfly/artifact-versions.properties";
     @Component
     RepositorySystem repoSystem;
 
@@ -393,11 +371,10 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
     private boolean forkCli;
 
     // EE-9 specific
-    private Path provisioningMavenRepo;
-    private String jakartaTransformSuffix;
-    private Set<String> transformExcluded = new HashSet<>();
+    private JakartaEE9Handler jakartaHandler;
     // End EE-9
 
+    @Override
     public Path getJBossHome() {
         return wildflyDir;
     }
@@ -414,7 +391,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
 
         artifactVersions = MavenProjectArtifactVersions.getInstance(project);
-        validateProjectFile();
+        Utils.validateProjectFile(this);
 
         if (isPackageDev()) {
             Path deployments = getDeploymentsDir();
@@ -429,7 +406,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
         Path contentRoot = Paths.get(project.getBuild().getDirectory()).resolve(bootableJarBuildArtifacts);
         if (Files.exists(contentRoot)) {
-            deleteDir(contentRoot);
+            Utils.deleteDir(contentRoot);
         }
         Path jarFile = Paths.get(project.getBuild().getDirectory()).resolve(outputFileName);
         IoUtils.recursiveDelete(contentRoot);
@@ -443,6 +420,9 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         } catch (IOException ex) {
             throw new MojoExecutionException("Packaging wildfly failed", ex);
         }
+        // EE-9
+        jakartaHandler = new JakartaEE9Handler(pluginOptions, artifactResolver);
+        // End EE-9
         Artifact bootArtifact;
         try {
             bootArtifact = provisionServer(wildflyDir, contentDir.resolve("provisioning.xml"), contentRoot);
@@ -450,46 +430,28 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             throw new MojoExecutionException("Provisioning failed", ex);
         }
 
-        // EE-9
-        String originalLocalRepo = null;
-        // end EE-9
-
         try {
+            // EE-9
+            jakartaHandler.setup();
+            // End EE-9
+
             // We are forking CLI executions in order to avoid JBoss Modules static references to ModuleLoaders.
             forkCli = Boolean.parseBoolean(pluginOptions.getOrDefault("jboss-fork-embedded", "false"));
             if (forkCli) {
                 getLog().info("CLI executions are done in forked process");
             }
-
-            // EE-9
-            // In case we provision a slim server and a provisioningMavenRepo has been provided,
-            // it must be used for the embedded server started in CLI scripts to resolve artifacts
-            String provisioningRepo = pluginOptions.get(JBOSS_PROVISIONING_MAVEN_REPO);
-            String generatedRepo = pluginOptions.get(MAVEN_REPO_PLUGIN_OPTION);
-            if (isThinServer()) {
-                if (generatedRepo != null) {
-                    Path repo = Paths.get(generatedRepo);
-                    originalLocalRepo = System.getProperty(MAVEN_REPO_LOCAL);
-                    System.setProperty(MAVEN_REPO_LOCAL, repo.toAbsolutePath().toString());
-                } else if (provisioningRepo != null) {
-                    provisioningMavenRepo = Paths.get(provisioningRepo);
-                    originalLocalRepo = System.getProperty(MAVEN_REPO_LOCAL);
-                    System.setProperty(MAVEN_REPO_LOCAL, provisioningMavenRepo.toAbsolutePath().toString());
-                }
-            }
-            // End EE-9
-
+            List<Path> cliPaths = Utils.getCLIArtifactPaths(this, jakartaHandler, cliArtifacts);
             // Legacy Patching point
-            legacyPatching();
+            legacyPatching(cliPaths);
             copyExtraContentInternal(wildflyDir, contentDir);
-            copyExtraContent(wildflyDir);
+            Utils.copyExtraContent(this);
             List<String> commands = new ArrayList<>();
-            deploy(commands);
+            Utils.deploy(this, commands);
             List<String> serverConfigCommands = new ArrayList<>();
             configureCli(serverConfigCommands);
             commands.addAll(serverConfigCommands);
             if (!commands.isEmpty()) {
-                executeCliScript(wildflyDir, commands, null, false, "Server configuration", true);
+                CliSession.executeCliScript(this, commands, null, false, "Server configuration", true, forkCli, cliPaths);
                 if (!serverConfigCommands.isEmpty()) {
                     // Store generated commands to file in build artifacts.
                     Path genCliScript = contentRoot.resolve("generated-cli-script.txt");
@@ -502,21 +464,21 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                     getLog().info("Stored CLI script executed to update server configuration in " + genCliScript + " file.");
                 }
             }
-            userScripts(wildflyDir, cliSessions, true);
+            CliSession.execute(this, cliSessions, true, forkCli, cliPaths);
 
             Path loggingFile = copyLoggingFile(contentRoot);
             if (bootLoggingConfig == null) {
-                generateLoggingConfig(wildflyDir);
+                generateLoggingConfig(wildflyDir, cliPaths);
             } else {
                 // Copy the user overridden logging.properties
-                final Path loggingConfig = resolvePath(bootLoggingConfig.toPath());
+                final Path loggingConfig = Utils.resolvePath(project, bootLoggingConfig.toPath());
                 if (Files.notExists(loggingConfig)) {
                     throw new MojoExecutionException(String.format("The bootLoggingConfig %s does not exist.", loggingConfig));
                 }
                 final Path target = getJBossHome().resolve("standalone").resolve("configuration").resolve("logging.properties");
                 Files.copy(loggingConfig, target, StandardCopyOption.REPLACE_EXISTING);
             }
-            cleanupServer(wildflyDir);
+            Utils.cleanupServer(wildflyDir);
             zipServer(wildflyDir, contentDir);
             buildJar(contentDir, jarFile, bootArtifact);
             restoreLoggingFile(loggingFile);
@@ -533,9 +495,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             // in same JVM next execution.
             System.clearProperty("module.path");
             // EE-9
-            if (originalLocalRepo != null) {
-                System.setProperty(MAVEN_REPO_LOCAL, originalLocalRepo);
-            }
+            jakartaHandler.done();
             // End EE-9
         }
 
@@ -572,7 +532,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
     }
 
-    private void legacyPatching() throws Exception {
+    private void legacyPatching(List<Path> cliPaths) throws Exception {
         if (legacyPatchCliScript != null) {
             LegacyPatchCleaner patchCleaner = null;
             if (legacyPatchCleanUp) {
@@ -581,7 +541,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             String prop = "jboss.home.dir";
             System.setProperty(prop, wildflyDir.toAbsolutePath().toString());
             try {
-                Path patchScript = resolvePath(Paths.get(legacyPatchCliScript));
+                Path patchScript = Utils.resolvePath(project, Paths.get(legacyPatchCliScript));
                 if (Files.notExists(patchScript)) {
                     throw new Exception("Patch CLI script " + patchScript + " doesn't exist");
                 }
@@ -593,35 +553,13 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 patchingSession.setScriptFiles(files);
                 cliPatchingSessions.add(patchingSession);
                 getLog().info("Patching server with " + patchScript + " CLI script.");
-                userScripts(wildflyDir, cliPatchingSessions, false);
+                CliSession.execute(this, cliPatchingSessions, false, forkCli, cliPaths);
                 if (patchCleaner != null) {
                     patchCleaner.clean();
                 }
             } finally {
                 System.clearProperty(prop);
             }
-        }
-    }
-
-    private void copyExtraContent(Path wildflyDir) throws Exception {
-        for (String path : extraServerContentDirs) {
-            Path extraContent = Paths.get(path);
-            extraContent = resolvePath(extraContent);
-            if (Files.notExists(extraContent)) {
-                throw new Exception("Extra content dir " + extraContent + " doesn't exist");
-            }
-            // Check for the presence of a standalone.xml file
-            warnExtraConfig(extraContent);
-            IoUtils.copy(extraContent, wildflyDir);
-        }
-
-    }
-
-    private void warnExtraConfig(Path extraContentDir) {
-        Path config = extraContentDir.resolve(STANDALONE).resolve("configurations").resolve(STANDALONE_XML);
-        if (Files.exists(config)) {
-            getLog().warn("The file " + config + " overrides the Galleon generated configuration, "
-                    + "un-expected behavior can occur when starting the bootable JAR");
         }
     }
 
@@ -638,7 +576,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
             getLog().info("Hollow jar, No application deployment added to server.");
             return;
         }
-        File f = validateProjectFile();
+        File f = Utils.validateProjectFile(this);
 
         String fileName = f.getName();
         if (project.getPackaging().equals(WAR) || fileName.endsWith(WAR)) {
@@ -657,65 +595,9 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     }
 
-    private void cleanupServer(Path jbossHome) throws IOException {
-        Path history = jbossHome.resolve("standalone").resolve("configuration").resolve("standalone_xml_history");
-        IoUtils.recursiveDelete(history);
-        Files.deleteIfExists(jbossHome.resolve("README.txt"));
-    }
-
-    protected File validateProjectFile() throws MojoExecutionException {
-        File f = getProjectFile();
-        if (f == null && !hollowJar) {
-            throw new MojoExecutionException("Cannot package without a primary artifact; please `mvn package` prior to invoking wildfly-jar:package from the command-line");
-        }
-        return f;
-    }
-
-    private void userScripts(Path wildflyDir, List<CliSession> sessions, boolean startEmbedded) throws Exception {
-        for (CliSession session : sessions) {
-            List<String> commands = new ArrayList<>();
-            for (String path : session.getScriptFiles()) {
-                File f = new File(path);
-                Path filePath = resolvePath(f.toPath());
-                if (Files.notExists(filePath)) {
-                    throw new RuntimeException("Cli script file " + filePath + " doesn't exist");
-                }
-                try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
-                    String line = reader.readLine();
-                    while (line != null) {
-                        commands.add(line.trim());
-                        line = reader.readLine();
-                    }
-                }
-            }
-            if(!commands.isEmpty()) {
-                executeCliScript(wildflyDir, commands, session.getPropertiesFile(),
-                        session.getResolveExpression(), session.toString(), startEmbedded);
-            }
-        }
-    }
-
-    private void executeCliScript(Path jbossHome, List<String> commands, String propertiesFile,
-            boolean resolveExpression, String message, boolean startEmbedded) throws Exception {
-        getLog().info("Executing CLI, " + message);
-        Properties props = null;
-        if (propertiesFile != null) {
-            props = loadProperties(propertiesFile);
-        }
-        try {
-            processCLI(jbossHome, commands, resolveExpression, startEmbedded);
-        } finally {
-            if (props != null) {
-                for (String key : props.stringPropertyNames()) {
-                    WildFlySecurityManager.clearPropertyPrivileged(key);
-                }
-            }
-        }
-    }
-
-    private void generateLoggingConfig(final Path wildflyDir) throws Exception {
-        try (CLIExecutor cmdCtx = forkCli ? new RemoteCLIExecutor(wildflyDir, getCLIArtifacts(), this, false)
-                : new LocalCLIExecutor(wildflyDir, getCLIArtifacts(), this, false, bootLoggingConfiguration)) {
+    private void generateLoggingConfig(final Path wildflyDir, List<Path> cliPaths) throws Exception {
+        try (CLIExecutorBootLogging cmdCtx = forkCli ? new RemoteCLIExecutorBootLogging(this, cliPaths, false)
+                : new LocalCLIExecutorBootLogging(this, cliPaths, false, bootLoggingConfiguration)) {
             try {
                 cmdCtx.generateBootLoggingConfig();
             } catch (Exception e) {
@@ -725,105 +607,8 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         }
     }
 
-    private void processCLI(Path jbossHome, List<String> commands,
-            boolean resolveExpression, boolean startEmbedded) throws Exception {
-
-        List<String> allCommands = new ArrayList<>();
-        if (startEmbedded) {
-            allCommands.add("embed-server --jboss-home=" + jbossHome + " --std-out=discard");
-        }
-        for (String line : commands) {
-            allCommands.add(line.trim());
-        }
-        if (startEmbedded) {
-            allCommands.add("stop-embedded-server");
-        }
-        try (CLIExecutor executor = forkCli ? new RemoteCLIExecutor(jbossHome, getCLIArtifacts(), this, resolveExpression)
-                : new LocalCLIExecutor(jbossHome, getCLIArtifacts(), this, resolveExpression, bootLoggingConfiguration)) {
-
-            try {
-                executor.execute(allCommands);
-            } catch (Exception ex) {
-                getLog().error("Error executing CLI script " + ex.getLocalizedMessage());
-                getLog().error(executor.getOutput());
-                throw ex;
-            }
-            if (displayCliScriptsOutput) {
-                getLog().info(executor.getOutput());
-            }
-        }
-        getLog().info("CLI scripts execution done.");
-    }
-
-    private List<Path> getCLIArtifacts() throws MojoExecutionException {
-        debug("CLI artifacts %s", cliArtifacts);
-        List<Path> paths = new ArrayList<>();
-        paths.add(wildflyDir.resolve("jboss-modules.jar"));
-        for (Artifact a : cliArtifacts) {
-            paths.add(resolveArtifact(a));
-        }
-        return paths;
-    }
-
-    public Level disableLog() {
-        Logger l = Logger.getLogger("");
-        Level level = l.getLevel();
-        // Only disable logging if debug is not ebnabled.
-        if (!getLog().isDebugEnabled()) {
-            l.setLevel(Level.OFF);
-        }
-        return level;
-    }
-
-    public void enableLog(Level level) {
-        Logger l = Logger.getLogger("");
-        l.setLevel(level);
-    }
-
-    private Path resolvePath(Path path) {
-        if (!path.isAbsolute()) {
-            path = Paths.get(project.getBasedir().getAbsolutePath()).resolve(path);
-        }
-        return path;
-    }
-
-    private Properties loadProperties(String propertiesFile) throws Exception {
-        File f = new File(propertiesFile);
-        Path filePath = resolvePath(f.toPath());
-        if (Files.notExists(filePath)) {
-            throw new RuntimeException("Cli properties file " + filePath + " doesn't exist");
-        }
-        final Properties props = new Properties();
-        try (InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(filePath.toFile()),
-                StandardCharsets.UTF_8)) {
-            props.load(inputStreamReader);
-        } catch (IOException e) {
-            throw new Exception(
-                    "Failed to load properties from " + propertiesFile + ": " + e.getLocalizedMessage());
-        }
-        for (String key : props.stringPropertyNames()) {
-            WildFlySecurityManager.setPropertyPrivileged(key, props.getProperty(key));
-        }
-        return props;
-    }
-
-    private File getProjectFile() {
-        if (this.project.getArtifact().getFile() != null) {
-            return this.project.getArtifact().getFile();
-        }
-
-        String finalName = this.project.getBuild().getFinalName();
-
-        Path candidate = Paths.get(this.projectBuildDir, finalName + "." + this.project.getPackaging());
-
-        if (Files.exists(candidate)) {
-            return candidate.toFile();
-        }
-        return null;
-    }
-
     protected Path getProvisioningFile() {
-        return resolvePath(provisioningFile.toPath());
+        return Utils.resolvePath(project, provisioningFile.toPath());
     }
 
     protected boolean hasLayers() {
@@ -838,250 +623,15 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         return excludedLayers;
     }
 
-    private GalleonConfig buildFeaturePacksConfig(ProvisioningManager pm, boolean hasLayers) throws ProvisioningException, MojoExecutionException {
-        ProvisioningConfig.Builder state = ProvisioningConfig.builder();
-        ConfigId provisionedConfigId = null;
-        for (FeaturePack fp : featurePacks) {
-
-            if (fp.getLocation() == null && (fp.getGroupId() == null || fp.getArtifactId() == null)
-                    && fp.getNormalizedPath() == null) {
-                throw new MojoExecutionException("Feature-pack location, Maven GAV or feature pack path is missing");
-            }
-
-            final FeaturePackLocation fpl;
-            if (fp.getNormalizedPath() != null) {
-                fpl = pm.getLayoutFactory().addLocal(fp.getNormalizedPath(), false);
-            } else if (fp.getGroupId() != null && fp.getArtifactId() != null) {
-                String coords = fp.getMavenCoords();
-                fpl = FeaturePackLocation.fromString(coords);
-            } else {
-                fpl = FeaturePackLocation.fromString(fp.getLocation());
-            }
-
-            final FeaturePackConfig.Builder fpConfig = FeaturePackConfig.builder(fpl);
-            fpConfig.setInheritConfigs(false);
-            if (fp.isInheritPackages() != null) {
-                fpConfig.setInheritPackages(fp.isInheritPackages());
-            }
-
-            if (fp.getIncludedDefaultConfig() != null) {
-                ConfigId includedConfigId = new ConfigId(STANDALONE, fp.getIncludedDefaultConfig());
-                fpConfig.includeDefaultConfig(includedConfigId);
-                if (provisionedConfigId == null) {
-                    provisionedConfigId = includedConfigId;
-                } else {
-                    if (!provisionedConfigId.getName().equals(fp.getIncludedDefaultConfig())) {
-                        throw new ProvisioningException("Feature-packs are not including the same default config");
-                    }
-                }
-            } else {
-                // We don't have an explicit default config and we have no layers, must include the default one.
-                if (!hasLayers && provisionedConfigId == null) {
-                    provisionedConfigId = getDefaultConfig();
-                    fpConfig.includeDefaultConfig(provisionedConfigId);
-                }
-            }
-
-            if (!fp.getIncludedPackages().isEmpty()) {
-                for (String includedPackage : fp.getIncludedPackages()) {
-                    fpConfig.includePackage(includedPackage);
-                }
-            }
-            if (!fp.getExcludedPackages().isEmpty()) {
-                for (String excludedPackage : fp.getExcludedPackages()) {
-                    fpConfig.excludePackage(excludedPackage);
-                }
-            }
-
-            state.addFeaturePackDep(fpConfig.build());
-        }
-        if (hasLayers) {
-            getLog().info("Provisioning server configuration based on the set of configured layers");
-        } else {
-            getLog().info("Provisioning server configuration based on the " + provisionedConfigId.getName() + " default configuration.");
-        }
-        return hasLayers ? new LayersFeaturePacksConfig(state) : new DefaultFeaturePacksConfig(provisionedConfigId, state);
-    }
-
-    private interface GalleonConfig {
-
-        ProvisioningConfig buildConfig() throws ProvisioningException;
-    }
-
-    /**
-     * Parse provisioning.xml to build the configuration.
-     */
-    private class ProvisioningFileConfig implements GalleonConfig {
-
-        @Override
-        public ProvisioningConfig buildConfig() throws ProvisioningException {
-            return ProvisioningXmlParser.parse(getProvisioningFile());
-        }
-    }
-
-    /**
-     * Abstract Galleon config that handles plugin options and build the config
-     * based on the state provided by sub class.
-     */
-    private abstract class AbstractGalleonConfig implements GalleonConfig {
-
-        protected final ConfigModel.Builder configBuilder;
-
-        AbstractGalleonConfig(ConfigModel.Builder configBuilder) throws ProvisioningException {
-            Objects.requireNonNull(configBuilder);
-            this.configBuilder = configBuilder;
-            setupPluginOptions();
-        }
-
-        private void setupPluginOptions() throws ProvisioningException {
-            // passive+ in all cases
-            // For included default config not based on layers, default packages
-            // must be included.
-            if (pluginOptions.isEmpty()) {
-                pluginOptions = Collections.
-                        singletonMap(Constants.OPTIONAL_PACKAGES, Constants.PASSIVE_PLUS);
-            } else {
-                if (!pluginOptions.containsKey(Constants.OPTIONAL_PACKAGES)) {
-                    pluginOptions.put(Constants.OPTIONAL_PACKAGES, Constants.PASSIVE_PLUS);
-                }
-                if (pluginOptions.containsKey(MAVEN_REPO_PLUGIN_OPTION)) {
-                    String val = pluginOptions.get(MAVEN_REPO_PLUGIN_OPTION);
-                    if (val != null) {
-                        Path path = Paths.get(val);
-                        if (!path.isAbsolute()) {
-                            path = project.getBasedir().toPath().resolve(path);
-                            pluginOptions.put(MAVEN_REPO_PLUGIN_OPTION, path.toString());
-                        }
-                    }
-                }
-            }
-        }
-
-        protected abstract ProvisioningConfig.Builder buildState() throws ProvisioningException;
-
-        @Override
-        public ProvisioningConfig buildConfig() throws ProvisioningException {
-            ProvisioningConfig.Builder state = buildState();
-            state.addConfig(configBuilder.build());
-            state.addOptions(pluginOptions);
-            return state.build();
-        }
-    }
-
-    /**
-     * Abstract config for config based on added Galleon layers. Parent class of
-     * all configuration constructed from Galleon layers + FPL or set of
-     * feature-packs.
-     */
-    private abstract class AbstractLayersConfig extends AbstractGalleonConfig {
-
-        public AbstractLayersConfig() throws ProvisioningDescriptionException, ProvisioningException {
-            super(ConfigModel.builder(STANDALONE, STANDALONE_XML));
-            for (String layer : layers) {
-                configBuilder.includeLayer(layer);
-            }
-
-            for (String layer : extraLayers) {
-                if (!layers.contains(layer)) {
-                    configBuilder.includeLayer(layer);
-                }
-            }
-
-            for (String layer : excludedLayers) {
-                configBuilder.excludeLayer(layer);
-            }
-        }
-    }
-
-
-    /**
-     * Galleon layers based config that uses the set of feature-packs.
-     */
-    private class LayersFeaturePacksConfig extends AbstractLayersConfig {
-
-        private final ProvisioningConfig.Builder state;
-
-        private LayersFeaturePacksConfig(ProvisioningConfig.Builder state) throws ProvisioningDescriptionException, ProvisioningException {
-            this.state = state;
-        }
-
-        @Override
-        public ProvisioningConfig.Builder buildState() throws ProvisioningException {
-            return state;
-        }
-    }
-
-    private static ConfigModel.Builder buildDefaultConfigBuilder(ConfigId defaultConfigId) {
-        Objects.requireNonNull(defaultConfigId);
-        ConfigModel.Builder configBuilder = ConfigModel.builder(defaultConfigId.getModel(), defaultConfigId.getName());
-        configBuilder.setProperty(SERVER_CONFIG, STANDALONE_XML);
-        return configBuilder;
-    }
-
-    /**
-     * Abstract config, parent of all config based on a default configuration.
-     * Default configuration can be explicitly included in feature-packs or be a
-     * default one (microprofile or microprofile-ha for Cloud). These
-     * configurations benefit from layers exclusion and extra layers added by
-     * cloud.
-     */
-    private abstract class AbstractDefaultConfig extends AbstractGalleonConfig {
-
-        private AbstractDefaultConfig(ConfigId defaultConfigId) throws ProvisioningException {
-            super(buildDefaultConfigBuilder(defaultConfigId));
-            // We can exclude layers from a default config.
-            for (String layer : excludedLayers) {
-                configBuilder.excludeLayer(layer);
-            }
-            // We can have extra layers to add to default config.
-            for (String layer : extraLayers) {
-                configBuilder.includeLayer(layer);
-            }
-        }
-
-    }
-
-    /**
-     * A config based on the set of feature-packs. Default config is explicitly
-     * included or is the default.
-     */
-    private class DefaultFeaturePacksConfig extends AbstractDefaultConfig {
-
-        private final ProvisioningConfig.Builder state;
-
-        private DefaultFeaturePacksConfig(ConfigId defaultConfigId, ProvisioningConfig.Builder state) throws ProvisioningException {
-            super(defaultConfigId);
-            Objects.requireNonNull(state);
-            this.state = state;
-        }
-
-        @Override
-        protected ProvisioningConfig.Builder buildState() throws ProvisioningException {
-            return state;
-        }
-
-    }
-
-    private void normalizeFeaturePackList() throws MojoExecutionException {
-        if (featurePackLocation != null && !featurePacks.isEmpty()) {
-            throw new MojoExecutionException("feature-pack-location can't be used with a list of feature-packs");
-        }
-
+    private void setFeaturePacksVersions() throws MojoExecutionException {
         // Retrieve versions from Maven in case versions not set.
         if (featurePackLocation != null) {
             featurePackLocation = MavenUpgrade.locationWithVersion(featurePackLocation, artifactVersions);
-            featurePacks = new ArrayList<>();
-            FeaturePack fp = new FeaturePack();
-            fp.setLocation(featurePackLocation);
-            featurePacks.add(fp);
         } else {
             for (FeaturePack fp : featurePacks) {
                 if (fp.getLocation() != null) {
                     fp.setLocation(MavenUpgrade.locationWithVersion(fp.getLocation(), artifactVersions));
                 } else {
-                    if (fp.getGroupId() == null || fp.getArtifactId() == null) {
-                        throw new MojoExecutionException("Invalid Maven coordinates for galleon feature-pack ");
-                    }
                     if (fp.getVersion() == null) {
                         Artifact fpArtifact = artifactVersions.getFeaturePackArtifact(fp.getGroupId(), fp.getArtifactId(), fp.getClassifier());
                         if (fpArtifact == null) {
@@ -1092,39 +642,6 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 }
             }
         }
-    }
-
-    private GalleonConfig buildGalleonConfig(ProvisioningManager pm) throws ProvisioningException, MojoExecutionException {
-        boolean isLayerBasedConfig = !layers.isEmpty();
-        boolean hasFeaturePack = !featurePacks.isEmpty();
-        boolean hasProvisioningFile = Files.exists(getProvisioningFile());
-        if (!hasFeaturePack && !hasProvisioningFile) {
-            throw new ProvisioningException("No valid provisioning configuration, "
-                    + "you must set a feature-pack-location, a list of feature-packs or use a provisioning.xml file");
-        }
-
-        if (hasFeaturePack && hasProvisioningFile) {
-            getLog().warn("Feature packs defined in pom.xml override provisioning file located in " + getProvisioningFile());
-        }
-
-        if (isLayerBasedConfig) {
-            if (!hasFeaturePack) {
-                throw new ProvisioningException("No server feature-pack location to provision layers, you must set a feature-pack-location");
-            }
-            return buildFeaturePacksConfig(pm, true);
-        }
-
-        // Based on default config
-        if (!featurePacks.isEmpty()) {
-            getLog().info("Provisioning server using feature-packs");
-            return buildFeaturePacksConfig(pm, isLayerBasedConfig);
-        }
-
-        if (hasProvisioningFile) {
-            getLog().info("Provisioning server using " + getProvisioningFile());
-            return new ProvisioningFileConfig();
-        }
-        throw new ProvisioningException("Invalid Galleon configuration");
     }
 
     private void willProvision(List<FeaturePack> featurePacks, ProvisioningManager pm)
@@ -1146,9 +663,11 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
             // Prior to build the config, sub classes could have to inject content to the config according to the
             // provisioned FP.
-            normalizeFeaturePackList();
-            willProvision(featurePacks, pm);
-            ProvisioningConfig config = buildGalleonConfig(pm).buildConfig();
+            setFeaturePacksVersions();
+            GalleonConfigBuilder builder = new GalleonConfigBuilder(this, () -> AbstractBuildBootableJarMojo.this.getDefaultConfig(), featurePacks, featurePackLocation,
+                  provisioningFile, layers, extraLayers, excludedLayers, logTime, pluginOptions, offline, recordState);
+            willProvision(builder.getFeaturePacks(), pm);
+            ProvisioningConfig config = builder.buildGalleonConfig(pm).buildConfig();
             IoUtils.recursiveDelete(home);
             getLog().info("Building server based on " + config.getFeaturePackDeps() + " galleon feature-packs");
             MavenUpgrade mavenUpgrade = new MavenUpgrade(this, config, pm);
@@ -1172,13 +691,13 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                     Path artifactProps = fprt.getResource(WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH);
                     final Map<String, String> propsMap = new HashMap<>();
                     try {
-                        readProperties(artifactProps, propsMap);
+                        Utils.readProperties(artifactProps, propsMap);
                     } catch (Exception ex) {
                         throw new MojoExecutionException("Error reading artifact versions", ex);
                     }
                     for(Entry<String,String> entry : propsMap.entrySet()) {
                         String value = entry.getValue();
-                        Artifact a = getArtifact(value);
+                        Artifact a = Utils.getArtifact(value);
                         if ( BOOT_ARTIFACT_ID.equals(a.getArtifactId())) {
                             // We got it.
                             getLog().info("Found boot artifact " + a + " in " + mavenUpgrade.getMavenFeaturePack(fprt.getFPID()));
@@ -1191,36 +710,16 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 Path artifactProps = fprt.getResource(WILDFLY_ARTIFACT_VERSIONS_RESOURCE_PATH);
                 final Map<String, String> propsMap = new HashMap<>();
                 try {
-                    readProperties(artifactProps, propsMap);
+                    Utils.readProperties(artifactProps, propsMap);
                 } catch (Exception ex) {
                     throw new MojoExecutionException("Error reading artifact versions", ex);
                 }
                 // EE-9
-                // Lookup to retrieve ee-9 suffix.
-                Path tasksProps = fprt.getResource("wildfly/wildfly-tasks.properties");
-                final Map<String, String> tasksMap = new HashMap<>();
-                try {
-                    readProperties(tasksProps, tasksMap);
-                } catch (Exception ex) {
-                    throw new MojoExecutionException("Error reading artifact versions", ex);
-                }
-                jakartaTransformSuffix = tasksMap.get("jakarta.transform.artifacts.suffix");
-                final Path excludedArtifacts = fprt.getResource("wildfly-jakarta-transform-excludes.txt");
-                if (Files.exists(excludedArtifacts)) {
-                    try (BufferedReader reader = Files.newBufferedReader(excludedArtifacts, StandardCharsets.UTF_8)) {
-                        String line = reader.readLine();
-                        while (line != null) {
-                            transformExcluded = CollectionUtils.add(transformExcluded, line);
-                            line = reader.readLine();
-                        }
-                    } catch (IOException e) {
-                        throw new ProvisioningException(Errors.readFile(excludedArtifacts), e);
-                    }
-                }
+                jakartaHandler.lookupFeaturePack(fprt);
                 // End EE-9
                 for (Entry<String, String> entry : propsMap.entrySet()) {
                     String value = entry.getValue();
-                    Artifact a = getArtifact(value);
+                    Artifact a = Utils.getArtifact(value);
                     if ("wildfly-cli".equals(a.getArtifactId())
                             && "org.wildfly.core".equals(a.getGroupId())) {
                         // We got it.
@@ -1293,37 +792,19 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
                 new DefaultArtifactHandler(extension));
     }
 
-    static void readProperties(Path propsFile, Map<String, String> propsMap) throws Exception {
-        try (BufferedReader reader = Files.newBufferedReader(propsFile)) {
-            String line = reader.readLine();
-            while (line != null) {
-                line = line.trim();
-                if (!line.isEmpty() && line.charAt(0) != '#') {
-                    final int i = line.indexOf('=');
-                    if (i < 0) {
-                        throw new Exception("Failed to parse property " + line + " from " + propsFile);
-                    }
-                    propsMap.put(line.substring(0, i), line.substring(i + 1));
-                }
-                line = reader.readLine();
-            }
-        }
+    @Override
+    public MavenProject getProject() {
+        return project;
     }
 
-    private void deploy(List<String> commands) throws MojoExecutionException {
-        if (hollowJar) {
-            getLog().info("Hollow jar, No application deployment added to server.");
-            return;
-        }
-        File f = validateProjectFile();
+    @Override
+    public boolean isDisplayCliScriptsOutputEnabled() {
+        return displayCliScriptsOutput;
+    }
 
-        String runtimeName = f.getName();
-        if (project.getPackaging().equals(WAR) || runtimeName.endsWith(WAR)) {
-            if (contextRoot) {
-                runtimeName = "ROOT." + WAR;
-            }
-        }
-        commands.add("deploy " + f.getAbsolutePath() + " --name=" + f.getName() + " --runtime-name=" + runtimeName);
+    @Override
+    public List<String> getExtraServerContentDirs() {
+        return extraServerContentDirs;
     }
 
     private static void zipServer(Path home, Path contentDir) throws IOException {
@@ -1332,7 +813,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
     }
 
     private void buildJar(Path contentDir, Path jarFile, Artifact artifact) throws MojoExecutionException, IOException {
-        Path rtJarFile = resolveArtifact(artifact);
+        Path rtJarFile = Utils.resolveArtifact(jakartaHandler, artifact);
         ZipUtils.unzip(rtJarFile, contentDir);
         zip(contentDir, jarFile);
     }
@@ -1395,131 +876,16 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     public Path resolveArtifact(String groupId, String artifactId, String classifier, String version) throws UnsupportedEncodingException,
             PlexusConfigurationException, MojoExecutionException {
-        return resolveArtifact(new DefaultArtifact(groupId, artifactId, version,
+        return Utils.resolveArtifact(jakartaHandler, new DefaultArtifact(groupId, artifactId, version,
                 "provided", JAR, classifier, new DefaultArtifactHandler(JAR)));
     }
-
-    Path resolveArtifact(Artifact artifact) throws MojoExecutionException {
-        MavenArtifact mavenArtifact = new MavenArtifact();
-        mavenArtifact.setGroupId(artifact.getGroupId());
-        mavenArtifact.setArtifactId(artifact.getArtifactId());
-        mavenArtifact.setVersion(artifact.getVersion());
-        mavenArtifact.setClassifier(artifact.getClassifier());
-        mavenArtifact.setExtension(artifact.getType());
-        try {
-            resolve(mavenArtifact);
-            return mavenArtifact.getPath();
-        } catch (IOException | MavenUniverseException ex) {
-            throw new MojoExecutionException(ex.toString(), ex);
-        }
-    }
-
-    // EE-9
-    private boolean isThinServer() throws ProvisioningException {
-        if (!pluginOptions.containsKey(JBOSS_MAVEN_DIST)) {
-            return false;
-        }
-        final String value = pluginOptions.get(JBOSS_MAVEN_DIST);
-        return value == null ? true : Boolean.parseBoolean(value);
-    }
-
-    private void resolve(MavenArtifact artifact) throws MavenUniverseException, IOException {
-        if (provisioningMavenRepo == null) {
-            artifactResolver.resolve(artifact);
-        } else {
-            String grpid = artifact.getGroupId().replaceAll("\\.", Matcher.quoteReplacement(File.separator));
-            Path grpidPath = provisioningMavenRepo.resolve(grpid);
-            Path artifactidPath = grpidPath.resolve(artifact.getArtifactId());
-            String version = getTransformedVersion(artifact);
-            Path versionPath = artifactidPath.resolve(version);
-            String classifier = (artifact.getClassifier() == null || artifact.getClassifier().isEmpty()) ? null : artifact.getClassifier();
-            Path localPath = versionPath.resolve(artifact.getArtifactId() + "-"
-                    + version
-                    + (classifier == null ? "" : "-" + classifier)
-                    + "." + artifact.getExtension());
-
-            if (Files.exists(localPath)) {
-                artifact.setPath(localPath);
-            } else {
-                artifactResolver.resolve(artifact);
-            }
-        }
-    }
-
-    private String getTransformedVersion(MavenArtifact artifact) {
-        boolean transformed = !isExcludedFromTransformation(artifact);
-        return artifact.getVersion() + (transformed ? jakartaTransformSuffix : "");
-    }
-
-    private boolean isExcludedFromTransformation(MavenArtifact artifact) {
-        if (transformExcluded.contains(artifactToString(artifact))) {
-            return true;
-        }
-        return false;
-    }
-
-    private String artifactToString(MavenArtifact artifact) {
-        final StringBuilder buf = new StringBuilder();
-        if (artifact.getGroupId() != null) {
-            buf.append(artifact.getGroupId());
-        }
-        buf.append(':');
-        if (artifact.getArtifactId() != null) {
-            buf.append(artifact.getArtifactId());
-        }
-        if (artifact.getVersion() != null) {
-            buf.append(':').append(artifact.getVersion());
-        }
-        return buf.toString();
-    }
-    // End EE-9
 
     private void attachJar(Path jarFile) {
         debug("Attaching bootable jar %s as a project artifact", jarFile);
         projectHelper.attachArtifact(project, JAR, BOOTABLE_SUFFIX, jarFile.toFile());
     }
 
-    void debug(String msg, Object... args) {
-        if (getLog().isDebugEnabled()) {
-            getLog().debug(String.format(msg, args));
-        }
-    }
-
-    static void deleteDir(Path root) {
-        if (root == null || Files.notExists(root)) {
-            return;
-        }
-        try {
-            Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                        throws IOException {
-                    try {
-                        Files.delete(file);
-                    } catch (IOException ex) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException e)
-                        throws IOException {
-                    if (e != null) {
-                        // directory iteration failed
-                        throw e;
-                    }
-                    try {
-                        Files.delete(dir);
-                    } catch (IOException ex) {
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-        }
-    }
-
-    Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
+    public Path resolveMaven(ArtifactCoordinate coordinate) throws MavenUniverseException {
         final MavenArtifact artifact = new MavenArtifact()
                 .setGroupId(coordinate.getGroupId())
                 .setArtifactId(coordinate.getArtifactId())
@@ -1529,4 +895,15 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
         artifactResolver.resolve(artifact);
         return artifact.getPath();
     }
+
+    @Override
+    public boolean isContextRoot() {
+        return contextRoot;
+    }
+
+    @Override
+    public boolean isHollow() {
+        return hollowJar;
+    }
+
 }

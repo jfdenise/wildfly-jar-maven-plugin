@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DefaultConfigurationWithFPTestCase extends AbstractBootableJarMojoTestCase {
+public class DefaultConfigurationWithFPTestCase extends BootableJarMojoTest {
 
     public DefaultConfigurationWithFPTestCase() {
         super("test18-pom.xml", true, null);

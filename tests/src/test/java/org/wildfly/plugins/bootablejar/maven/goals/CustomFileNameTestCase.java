@@ -24,7 +24,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class CustomFileNameTestCase extends AbstractBootableJarMojoTestCase {
+public class CustomFileNameTestCase extends BootableJarMojoTest {
 
     public CustomFileNameTestCase() {
         super("test11-pom.xml", true, null);

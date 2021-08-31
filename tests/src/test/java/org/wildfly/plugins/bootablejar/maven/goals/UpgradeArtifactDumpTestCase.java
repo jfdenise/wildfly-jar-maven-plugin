@@ -25,7 +25,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class UpgradeArtifactDumpTestCase extends AbstractBootableJarMojoTestCase {
+public class UpgradeArtifactDumpTestCase extends BootableJarMojoTest {
 
     public UpgradeArtifactDumpTestCase() {
         super("upgrade-artifact-dump-pom.xml", true, null);

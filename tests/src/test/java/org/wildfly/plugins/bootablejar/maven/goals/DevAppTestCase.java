@@ -24,7 +24,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DevAppTestCase extends AbstractBootableJarMojoTestCase {
+public class DevAppTestCase extends BootableJarMojoTest {
 
     public DevAppTestCase() {
         super("test7-pom.xml", true, null);

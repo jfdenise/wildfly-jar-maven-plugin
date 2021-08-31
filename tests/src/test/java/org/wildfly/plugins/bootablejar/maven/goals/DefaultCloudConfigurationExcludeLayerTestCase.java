@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * @author jdenise
  */
-public class DefaultCloudConfigurationExcludeLayerTestCase extends AbstractBootableJarMojoTestCase {
+public class DefaultCloudConfigurationExcludeLayerTestCase extends BootableJarMojoTest {
 
     public DefaultCloudConfigurationExcludeLayerTestCase() {
         super("test21-pom.xml", true, null);

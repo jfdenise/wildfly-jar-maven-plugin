@@ -14,21 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.plugins.bootablejar.maven.cli;
+package org.wildfly.plugins.bootablejar.maven.cli.bootlogging;
 
-import java.util.List;
+import org.wildfly.plugins.bootablejar.maven.cli.CLIExecutor;
 
 /**
  * @author jdenise
  */
-public interface CLIExecutor extends AutoCloseable {
-
-
-    void handle(String command) throws Exception;
-
-    String getOutput() throws Exception;
-
+public interface CLIExecutorBootLogging extends CLIExecutor {
     void generateBootLoggingConfig() throws Exception;
 
-    void execute(List<String> commands) throws Exception;
 }
