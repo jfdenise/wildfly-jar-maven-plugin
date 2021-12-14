@@ -1,0 +1,2 @@
+/system-property=foo:add(value=bar)
+#/system-property=aaa:write-attribute(value=clicli)

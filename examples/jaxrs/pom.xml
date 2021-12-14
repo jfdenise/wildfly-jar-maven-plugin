@@ -29,7 +29,10 @@
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-jar-maven-plugin</artifactId>
                 <configuration>
-                    <feature-pack-location>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</feature-pack-location>
+                    <extra-server-content-dirs>
+                        <extra-content>extras</extra-content>
+                    </extra-server-content-dirs>
+                    <feature-pack-location>org.wildfly:wildfly-galleon-pack:26.0.0.Final-SNAPSHOT</feature-pack-location>
                     <layers>
                         <layer>jaxrs</layer>
                         <layer>management</layer>

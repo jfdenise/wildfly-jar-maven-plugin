@@ -1,5 +1,7 @@
 # JAX-RS WildFly bootable jar example
 
+For yaml: java -jar target/jaxrs-bootable.jar --yaml=simple.yaml
+
 Build a bootable JAR containing a JAX-RS resource.
 
 Build and run
