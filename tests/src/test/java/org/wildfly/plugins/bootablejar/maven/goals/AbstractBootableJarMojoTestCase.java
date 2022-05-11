@@ -16,8 +16,10 @@
  */
 package org.wildfly.plugins.bootablejar.maven.goals;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -388,10 +390,27 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
         if (parent != null && Files.notExists(parent)) {
             Files.createDirectories(parent);
         }
-        return new ProcessBuilder(cmd)
+        Process p = new ProcessBuilder(cmd)
                 .redirectErrorStream(true)
-                .redirectOutput(out.toFile())
+                //.redirectOutput(out.toFile())
                 .start();
+        Thread thr = new Thread(new Runnable(){
+            @Override
+            public void run() {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line = reader.readLine();
+                    System.out.println("P: " + line);
+                    while(line != null) {
+                        line = reader.readLine();
+                        System.out.println("P: " + line);
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        thr.start();
+        return p;
     }
 
     protected boolean checkURL(String url) {

@@ -194,7 +194,7 @@
                         <phase>none</phase>
                     </execution>
                     <!-- run subset of tests with wildfly-ee -->
-                    <execution>
+                    <!--<execution>
                         <id>default-test-wildfly-ee</id>
                         <goals>
                             <goal>test</goal>
@@ -215,7 +215,7 @@
                                 <include>org/wildfly/plugins/bootablejar/maven/goals/OpenShiftConfigurationTestCase.java</include>
                             </includes>
                         </configuration>
-                    </execution>
+                    </execution>-->
                     <execution>
                         <id>default-test-wildfly-full</id>
                         <goals>

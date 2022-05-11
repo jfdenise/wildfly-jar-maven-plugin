@@ -22,9 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -54,8 +52,10 @@ public class CloudConfig {
 
     private static final String[] CLI_SCRIPTS = {
         "openshift-management-script.cli",
-        "openshift-logging-script.cli",
-        "openshift-interfaces-script.cli",
+        // Disable logging
+        //"openshift-logging-script.cli",
+        // Do not apply cli script
+        //"openshift-interfaces-script.cli",
         "openshift-https-script.cli",
         "openshift-undertow-script.cli",
         "openshift-tx-script.cli",
@@ -107,10 +107,11 @@ public class CloudConfig {
 
     public void copyExtraContent(BuildBootableJarMojo mojo, Path wildflyDir, Path contentDir)
             throws IOException, PlexusConfigurationException, MojoExecutionException {
-        try (InputStream stream = CloudConfig.class.getResourceAsStream("logging.properties")) {
-            Path target = wildflyDir.resolve("standalone").resolve("configuration").resolve("logging.properties");
-            Files.copy(stream, target, StandardCopyOption.REPLACE_EXISTING);
-        }
+        // Do not copy logging
+//        try (InputStream stream = CloudConfig.class.getResourceAsStream("logging.properties")) {
+//            Path target = wildflyDir.resolve("standalone").resolve("configuration").resolve("logging.properties");
+//            Files.copy(stream, target, StandardCopyOption.REPLACE_EXISTING);
+//        }
         Path marker = contentDir.resolve(type + ".properties");
         Properties props = new Properties();
         // TODO, if we need it, add properties there.
