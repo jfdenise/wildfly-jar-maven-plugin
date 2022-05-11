@@ -40,7 +40,7 @@ jobs:
           for i in {1..10}
           do
             echo "Starting the set of tests ${i}"
-            mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true' '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DefaultCloudConfiguration*TestCase'
+            mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true' '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DefaultCloudConfiguration*TestCase' '-Dsurefire.redirect.to.file=false'
           done
       - uses: actions/upload-artifact@v2
         if: failure()
