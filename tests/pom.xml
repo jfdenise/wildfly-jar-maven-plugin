@@ -32,7 +32,7 @@
     <name>WildFly Bootable JAR Maven Plugin tests</name>
 
     <properties>
-        <test.jvm.args />
+        <test.jvm.args>-Xms2g -Xmx2g</test.jvm.args>
         <jbossas.dist>${basedir}/target/wildfly-full</jbossas.dist>
     </properties>
 

@@ -390,6 +390,7 @@ public abstract class AbstractBootableJarMojoTestCase extends AbstractConfigured
         if (parent != null && Files.notExists(parent)) {
             Files.createDirectories(parent);
         }
+        System.out.println("START SERVER, COMMAND LINE: " + cmd);
         Process p = new ProcessBuilder(cmd)
                 .redirectErrorStream(true)
                 //.redirectOutput(out.toFile())
