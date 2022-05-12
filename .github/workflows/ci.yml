@@ -35,11 +35,11 @@ jobs:
           java-version: ${{ matrix.java }}
       - name: Build and Test on ${{ matrix.java }}
         run: |
-          mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true' '-DskipTests'
+          mvn clean install '-DskipTests'
           cd tests
           for ($num = 1 ; $num -le 10 ; $num++){
             echo "Starting the set of tests $num"
-            mvn clean install '-Dtest.jvm.args=-Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true' '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DefaultCloudConfiguration*TestCase' '-Dsurefire.redirect.to.file=false'
+            mvn clean install '-Dtest.jvm.args=-Xms1g -Xmx1g -Dorg.wildfly.logging.skipLogManagerCheck=true' '-Dorg.wildfly.bootable.jar.ci.execution=true' '-Dtest=org.wildfly.plugins.bootablejar.maven.goals.DefaultCloudConfiguration*TestCase' '-Dsurefire.redirect.to.file=false'
           }
       - uses: actions/upload-artifact@v2
         if: failure()

@@ -32,7 +32,7 @@
     <name>WildFly Bootable JAR Maven Plugin tests</name>
 
     <properties>
-        <test.jvm.args>-Xms2g -Xmx2g</test.jvm.args>
+        <test.jvm.args/>
         <jbossas.dist>${basedir}/target/wildfly-full</jbossas.dist>
     </properties>
 
@@ -118,7 +118,7 @@
         <plugins>
             <!-- provision a full server to be used as patching distribution source -->
 
-            <plugin>
+            <!--<plugin>
                 <groupId>org.jboss.galleon</groupId>
                 <artifactId>galleon-maven-plugin</artifactId>
                 <executions>
@@ -144,7 +144,7 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -182,6 +182,10 @@
                         <property>
                             <name>test.groupid.wildfly</name>
                             <value>${wildfly.groupId}</value>
+                        </property>
+                        <property>
+                            <name>test.jvm.args</name>
+                            <value>${test.jvm.mem.args} ${test.jvm.args}</value>
                         </property>
                     </systemProperties>
                 </configuration>
