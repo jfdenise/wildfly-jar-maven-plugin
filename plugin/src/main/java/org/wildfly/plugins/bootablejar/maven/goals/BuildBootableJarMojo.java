@@ -47,6 +47,8 @@ public class BuildBootableJarMojo extends AbstractBuildBootableJarMojo {
     @Parameter(alias = "cloud")
     CloudConfig cloud;
 
+    private ProvisioningSpecifics specifics;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -76,6 +78,7 @@ public class BuildBootableJarMojo extends AbstractBuildBootableJarMojo {
                 }
             }
         }
+        this.specifics = specifics;
     }
 
     @Override
@@ -91,11 +94,7 @@ public class BuildBootableJarMojo extends AbstractBuildBootableJarMojo {
 
     @Override
     protected ConfigId getDefaultConfig() {
-        if(cloud == null) {
-            return super.getDefaultConfig();
-        } else {
-            return new ConfigId("standalone", "standalone-microprofile-ha.xml");
-        }
+        return specifics.getDefaultConfig(cloud != null);
     }
 
     @Override

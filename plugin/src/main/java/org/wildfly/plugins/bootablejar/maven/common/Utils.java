@@ -37,6 +37,8 @@ import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.layout.FeaturePackLayout;
 import org.jboss.galleon.layout.ProvisioningLayout;
 import org.jboss.galleon.universe.FeaturePackLocation;
+import static org.wildfly.plugin.core.Constants.STANDALONE;
+import static org.wildfly.plugin.core.Constants.STANDALONE_XML;
 import org.wildfly.plugins.bootablejar.maven.goals.BuildBootableJarMojo;
 
 /**
@@ -68,6 +70,22 @@ public class Utils {
 
         public String getHealthLayer() {
             return healthLayer;
+        }
+
+        public ConfigId getDefaultConfig(boolean isCloud) {
+            if (isCloud) {
+                if (isMicroprofile) {
+                    return new ConfigId(STANDALONE, "standalone-microprofile-ha.xml");
+                } else {
+                    return new ConfigId(STANDALONE, "standalone-ha.xml");
+                }
+            } else {
+                if (isMicroprofile) {
+                    return new ConfigId(STANDALONE, "standalone-microprofile.xml");
+                } else {
+                    return new ConfigId(STANDALONE, STANDALONE_XML);
+                }
+            }
         }
     }
 

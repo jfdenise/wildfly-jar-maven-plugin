@@ -123,9 +123,9 @@ public class CloudConfig {
 
     public Set<String> getExtraLayers(BuildBootableJarMojo mojo, String healthLayer, Log log) {
         Set<String> set = new HashSet<>();
-        if (healthLayer == null) {
-            log.warn("No health layer found in feature-packs, health endpoint will be not available.");
-        } else {
+        // health can be null when a provisioning.xml file has been provided, we are not adding layers in such case.
+        // provisioning.xml file controls the set of added layers.
+        if (healthLayer != null) {
             set.add(healthLayer);
             log.debug("Adding health layer " + healthLayer);
         }
