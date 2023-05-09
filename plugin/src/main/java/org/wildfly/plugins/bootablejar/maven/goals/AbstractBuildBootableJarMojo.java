@@ -1336,7 +1336,9 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     Path resolveArtifact(MavenArtifact mavenArtifact) throws MojoExecutionException {
         try {
-            resolve(mavenArtifact);
+            if (!mavenArtifact.isResolved()) {
+                resolve(mavenArtifact);
+            }
             return mavenArtifact.getPath();
         } catch (IOException | MavenUniverseException ex) {
             throw new MojoExecutionException(ex.toString(), ex);
