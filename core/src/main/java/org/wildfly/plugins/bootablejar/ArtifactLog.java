@@ -21,7 +21,6 @@ import org.jboss.galleon.universe.maven.MavenArtifact;
 
 /**
  *
- * @author jdenise
  */
 public interface ArtifactLog {
     public void info(FeaturePackLocation.FPID fpid, MavenArtifact a);
