@@ -68,34 +68,40 @@ public class BootableJarSupport {
     /**
      * Package a wildfly server as a bootable JAR.
      */
-    public static void packageBootableJar(Path targetJarFile, Path contentRootDir,
+    public static void packageBootableJar(Path targetJarFile, Path target,
             ProvisioningConfig config, Path serverHome, MavenRepoManager resolver,
             MessageWriter writer, ArtifactLog log, String bootableJARVersion) throws Exception {
+        Path contentRootDir = target.resolve("bootable-jar-build-artifacts");
         if (Files.exists(contentRootDir)) {
             IoUtils.recursiveDelete(contentRootDir);
         }
         Files.createDirectories(contentRootDir);
-        zipServer(serverHome, contentRootDir);
-        ScannedArtifacts bootable;
-        try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(resolver)
-                .setInstallationHome(serverHome)
-                .setMessageWriter(writer)
-                .build()) {
-            bootable = scanArtifacts(pm, config, log);
-        }
-        // Extract the cloud extension if cloud execution context.
-        if (bootableJARVersion != null) {
-            try (InputStream stream = BootableJarSupport.class.getClassLoader().getResourceAsStream("config.properties")) {
-                Properties props = new Properties();
-                props.load(stream);
-                unzipCloudExtension(contentRootDir, bootableJARVersion, resolver);
-                // Needed by extension
-                Path marker = contentRootDir.resolve("openshift.properties");
-                Files.createFile(marker);
+        try {
+            zipServer(serverHome, contentRootDir);
+            ScannedArtifacts bootable;
+            Path emptyHome = contentRootDir.resolve("tmp-home");
+            Files.createDirectories(emptyHome);
+            try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(resolver)
+                    .setInstallationHome(emptyHome)
+                    .setMessageWriter(writer)
+                    .build()) {
+                bootable = scanArtifacts(pm, config, log);
             }
+            // Extract the cloud extension if cloud execution context.
+            if (bootableJARVersion != null) {
+                try (InputStream stream = BootableJarSupport.class.getClassLoader().getResourceAsStream("config.properties")) {
+                    Properties props = new Properties();
+                    props.load(stream);
+                    unzipCloudExtension(contentRootDir, bootableJARVersion, resolver);
+                    // Needed by extension
+                    Path marker = contentRootDir.resolve("openshift.properties");
+                    Files.createFile(marker);
+                }
+            }
+            buildJar(contentRootDir, targetJarFile, bootable, resolver);
+        } finally {
+            IoUtils.recursiveDelete(contentRootDir);
         }
-        buildJar(contentRootDir, targetJarFile, bootable, resolver);
-        IoUtils.recursiveDelete(contentRootDir);
     }
 
     public static void unzipCloudExtension(Path contentDir, String version, MavenRepoManager resolver) throws MavenUniverseException, IOException {
