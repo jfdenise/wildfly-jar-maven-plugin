@@ -27,7 +27,6 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
@@ -69,16 +68,14 @@ public class BootableJarSupport {
     /**
      * Package a wildfly server as a bootable JAR.
      */
-    public static void packageBootableJar(Path targetJarFile,
+    public static void packageBootableJar(Path targetJarFile, Path contentRootDir,
             ProvisioningConfig config, Path serverHome, MavenRepoManager resolver,
             MessageWriter writer, ArtifactLog log, String bootableJARVersion) throws Exception {
-        Path contentDir = Paths.get("jar-content");
-        if (Files.exists(contentDir)) {
-            IoUtils.recursiveDelete(contentDir);
+        if (Files.exists(contentRootDir)) {
+            IoUtils.recursiveDelete(contentRootDir);
         }
-        Files.createDirectory(contentDir);
-
-        zipServer(serverHome, contentDir);
+        Files.createDirectories(contentRootDir);
+        zipServer(serverHome, contentRootDir);
         ScannedArtifacts bootable;
         try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(resolver)
                 .setInstallationHome(serverHome)
@@ -91,14 +88,14 @@ public class BootableJarSupport {
             try (InputStream stream = BootableJarSupport.class.getClassLoader().getResourceAsStream("config.properties")) {
                 Properties props = new Properties();
                 props.load(stream);
-                unzipCloudExtension(contentDir, bootableJARVersion, resolver);
+                unzipCloudExtension(contentRootDir, bootableJARVersion, resolver);
                 // Needed by extension
-                Path marker = contentDir.resolve("openshift.properties");
+                Path marker = contentRootDir.resolve("openshift.properties");
                 Files.createFile(marker);
             }
         }
-        buildJar(contentDir, targetJarFile, bootable, resolver);
-        IoUtils.recursiveDelete(contentDir);
+        buildJar(contentRootDir, targetJarFile, bootable, resolver);
+        IoUtils.recursiveDelete(contentRootDir);
     }
 
     public static void unzipCloudExtension(Path contentDir, String version, MavenRepoManager resolver) throws MavenUniverseException, IOException {
