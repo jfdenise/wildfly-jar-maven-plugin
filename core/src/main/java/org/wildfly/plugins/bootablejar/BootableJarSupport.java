@@ -61,7 +61,7 @@ public class BootableJarSupport {
      */
     public static void packageBootableJar(Path targetJarFile, Path target,
            GalleonProvisioningConfig config, Path serverHome, MavenRepoManager resolver,
-            MessageWriter writer, ArtifactLog log, String bootableJARVersion) throws Exception {
+            MessageWriter writer, ArtifactLog log, String bootableJARVersion, boolean isCloud) throws Exception {
         Path contentRootDir = target.resolve("bootable-jar-build-artifacts");
         if (Files.exists(contentRootDir)) {
             IoUtils.recursiveDelete(contentRootDir);
@@ -79,7 +79,7 @@ public class BootableJarSupport {
                 bootable = scanArtifacts(pm, config, log);
             }
             // Extract the cloud extension if cloud execution context.
-            if (bootableJARVersion != null) {
+            if (isCloud && bootableJARVersion != null) {
                 try (InputStream stream = BootableJarSupport.class.getClassLoader().getResourceAsStream("config.properties")) {
                     Properties props = new Properties();
                     props.load(stream);
