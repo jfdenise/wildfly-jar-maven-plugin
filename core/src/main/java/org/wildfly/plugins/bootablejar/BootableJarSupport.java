@@ -19,13 +19,11 @@ package org.wildfly.plugins.bootablejar;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import org.jboss.galleon.MessageWriter;
 import org.jboss.galleon.ProvisioningException;
@@ -61,7 +59,7 @@ public class BootableJarSupport {
      */
     public static void packageBootableJar(Path targetJarFile, Path target,
            GalleonProvisioningConfig config, Path serverHome, MavenRepoManager resolver,
-            MessageWriter writer, ArtifactLog log, boolean isCloud) throws Exception {
+            MessageWriter writer, ArtifactLog log) throws Exception {
         Path contentRootDir = target.resolve("bootable-jar-build-artifacts");
         if (Files.exists(contentRootDir)) {
             IoUtils.recursiveDelete(contentRootDir);
@@ -79,15 +77,12 @@ public class BootableJarSupport {
                 bootable = scanArtifacts(pm, config, log);
             }
             // Extract the cloud extension if cloud execution context.
-            if (isCloud) {
-                try (InputStream stream = BootableJarSupport.class.getClassLoader().getResourceAsStream("config.properties")) {
-                    Properties props = new Properties();
-                    props.load(stream);
-                    unzipCloudExtension(contentRootDir, Version.getVersion(), resolver);
-                    // Needed by extension
-                    Path marker = contentRootDir.resolve("openshift.properties");
-                    Files.createFile(marker);
-                }
+            Path script = serverHome.resolve("bin/launch/generate_cli_script.sh");
+            if (Files.exists(script)) {
+                unzipCloudExtension(contentRootDir, Version.getVersion(), resolver);
+                // Needed by extension
+                Path marker = contentRootDir.resolve("openshift.properties");
+                Files.createFile(marker);
             }
             buildJar(contentRootDir, targetJarFile, bootable, resolver);
         } finally {

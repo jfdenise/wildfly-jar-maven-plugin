@@ -27,7 +27,7 @@ import java.util.Properties;
 public class Version {
 
     public static String getVersion() {
-        String version = getConfigEntry("wildfly-bootablejar-version");
+        String version = getConfigEntry("wildfly-bootable-jar-version");
         return version;
     }
 

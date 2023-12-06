@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -106,7 +107,8 @@ public class CloudExtension implements RuntimeExtension {
                 args.add("-D" + p + "=" + props.getProperty(p));
             }
         }
-
+        // Detect that we have a set of launch scripts to call.
+        handleCliScript(args, installDir);
         if (nodeName == null) {
             boolean setNodeName = true;
             nodeName = System.getProperty(JBOSS_NODE_NAME_PROPERTY);
@@ -125,6 +127,42 @@ public class CloudExtension implements RuntimeExtension {
         } else {
             String txId = trunkTxIdValue(nodeName);
             args.add("-D" + JBOSS_TX_NODE_ID_PROPERTY + "=" + txId);
+        }
+    }
+
+    private static void handleCliScript(List<String> args, Path jbossHome) throws Exception {
+        Path script = jbossHome.resolve("bin/launch/generate_cli_script.sh");
+        if (!Files.exists(script)) {
+            return;
+        }
+        Path outputScript = jbossHome.resolve("bin/launch/generated_cli_script.cli");
+        List<String> cmds = new ArrayList<>();
+        cmds.add("sh");
+        cmds.add(script.toAbsolutePath().toString());
+        cmds.add(outputScript.toAbsolutePath().toString());
+        ProcessBuilder builder = new ProcessBuilder(cmds);
+        builder.environment().
+                put("JBOSS_HOME", jbossHome.toAbsolutePath().toString());
+        Process p = builder.inheritIO().start();
+        int ret = p.waitFor();
+        if (ret != 0) {
+            throw new Exception("Error generating CLI script");
+        }
+        // XXX TODO detect that a custom CLI script is set and set CLI_LAUNCH_SCRIPT
+        if (Files.exists(outputScript)) {
+            Path errFile = Files.createTempFile("err-boot-script", null);
+            Files.delete(errFile);
+            Path warnFile = Files.createTempFile("warn-boot-script", null);
+            Files.delete(warnFile);
+            Path propsFile =  Files.createTempFile("props-boot-script", null);
+            StringBuilder propsBuilder = new StringBuilder();
+            propsBuilder.append("error_file="+errFile.toAbsolutePath().toString()+"\n");
+            propsBuilder.append("warning_file="+warnFile.toAbsolutePath().toString()+"\n");
+            Files.write(propsFile, propsBuilder.toString().getBytes());
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.properties=" + propsFile.toAbsolutePath().toString());
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.error.file=" + errFile.toAbsolutePath().toString());
+            args.add("-Dorg.wildfly.internal.cli.boot.hook.script.warn.file=" + warnFile.toAbsolutePath().toString());
+            args.add("--cli-script=" + outputScript.toAbsolutePath().toString());
         }
     }
 
