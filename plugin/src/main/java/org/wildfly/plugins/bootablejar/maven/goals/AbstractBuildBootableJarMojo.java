@@ -45,7 +45,6 @@ import java.util.Properties;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
 import javax.xml.stream.XMLStreamException;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DefaultArtifact;
@@ -77,7 +76,6 @@ import org.jboss.galleon.api.config.GalleonConfigurationWithLayersBuilder;
 import org.jboss.galleon.api.config.GalleonFeaturePackConfig;
 import org.jboss.galleon.api.config.GalleonProvisioningConfig;
 import org.jboss.galleon.universe.FeaturePackLocation;
-import org.jboss.galleon.universe.FeaturePackLocation.FPID;
 import org.jboss.galleon.universe.maven.MavenArtifact;
 import org.jboss.galleon.universe.maven.MavenUniverseException;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
@@ -85,10 +83,6 @@ import org.jboss.galleon.util.IoUtils;
 import org.jboss.galleon.util.ZipUtils;
 import org.wildfly.channel.UnresolvedMavenArtifactException;
 import org.wildfly.plugin.core.PluginProgressTracker;
-import org.wildfly.plugins.bootablejar.ArtifactLog;
-import org.wildfly.plugins.bootablejar.ScannedArtifacts;
-import org.wildfly.plugins.bootablejar.BootableJarSupport;
-import static org.wildfly.plugins.bootablejar.BootableJarSupport.BOOTABLE_SUFFIX;
 
 import org.wildfly.plugins.bootablejar.maven.cli.CLIExecutor;
 import org.wildfly.plugins.bootablejar.maven.cli.LocalCLIExecutor;
@@ -98,6 +92,11 @@ import org.wildfly.plugins.bootablejar.maven.common.MavenRepositoriesEnricher;
 import org.wildfly.plugins.bootablejar.maven.common.OverriddenArtifact;
 import org.wildfly.plugins.bootablejar.maven.common.Utils;
 import org.wildfly.plugins.bootablejar.maven.common.Utils.ProvisioningSpecifics;
+import org.wildfly.plugins.core.bootablejar.BootLoggingConfiguration;
+import org.wildfly.plugins.core.bootablejar.BootableJarSupport;
+import static org.wildfly.plugins.core.bootablejar.BootableJarSupport.BOOTABLE_SUFFIX;
+import org.wildfly.plugins.core.bootablejar.Log;
+import org.wildfly.plugins.core.bootablejar.ScannedArtifacts;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -360,8 +359,7 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
     MavenProjectArtifactVersions artifactVersions;
 
-    @Inject
-    private BootLoggingConfiguration bootLoggingConfiguration;
+    private final BootLoggingConfiguration bootLoggingConfiguration = new BootLoggingConfiguration();
 
     private final List<String> extraLayers = new ArrayList<>();
 
@@ -1131,15 +1129,22 @@ public abstract class AbstractBuildBootableJarMojo extends AbstractMojo {
 
             try {
                 MavenUpgrade fmavenUpgrade = mavenUpgrade;
-                scannedArtifacts = BootableJarSupport.scanArtifacts(pm, newConfig, new ArtifactLog() {
+                scannedArtifacts = BootableJarSupport.scanArtifacts(pm, newConfig, new Log() {
                     @Override
-                    public void info(FPID fpid, MavenArtifact a) {
-                        getLog().info("Found artifact " + a + " in " + (fmavenUpgrade == null ? fpid : fmavenUpgrade.getMavenFeaturePack(fpid)));
+                    public void warn(String string) {
+                        getLog().warn(string);
                     }
 
                     @Override
-                    public void debug(FPID fpid, MavenArtifact a) {
-                        AbstractBuildBootableJarMojo.this.debug("Found patching artifact %s in %s", a, (fmavenUpgrade == null ? fpid : fmavenUpgrade.getMavenFeaturePack(fpid)));
+                    public void debug(String string) {
+                        if (getLog().isDebugEnabled()) {
+                            getLog().debug(string);
+                        }
+                    }
+
+                    @Override
+                    public void error(String string) {
+                        getLog().error(string);
                     }
                 });
             } catch (Exception ex) {

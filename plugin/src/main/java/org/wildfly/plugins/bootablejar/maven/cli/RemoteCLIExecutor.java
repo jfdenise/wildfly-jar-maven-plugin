@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
 import org.wildfly.plugins.bootablejar.maven.goals.AbstractBuildBootableJarMojo;
+import org.wildfly.plugins.core.cli.CLIForkedBootConfigGenerator;
 
 /**
  * A CLI executor, that forks CLI execution in a remote process.

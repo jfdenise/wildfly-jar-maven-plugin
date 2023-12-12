@@ -55,7 +55,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.wildfly.core.launcher.ProcessHelper;
 import org.wildfly.plugin.core.ServerHelper;
-import org.wildfly.plugins.bootablejar.BootableJarSupport;
+import org.wildfly.plugins.core.bootablejar.BootableJarSupport;
 
 /**
  * @author jdenise
