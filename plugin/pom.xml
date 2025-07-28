@@ -30,7 +30,7 @@
     <packaging>maven-plugin</packaging>
 
     <name>WildFly Bootable JAR Maven Plugin</name>
-
+    <description>WildFly Bootable JAR Maven Plugin</description>
     <properties>
         <!-- Galleon -->
         <galleon.fork.embedded>true</galleon.fork.embedded>

@@ -30,6 +30,7 @@
   <packaging>pom</packaging>
 
   <name>WildFly Bootable JAR runtime extensions Parent</name>
+  <description>WildFly Bootable JAR runtime extensions Parent</description>
   <inceptionYear>2019</inceptionYear>
   <licenses>
     <license>

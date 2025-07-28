@@ -32,6 +32,8 @@
   <packaging>pom</packaging>
 
   <name>WildFly Bootable JAR Plugin Parent</name>
+  <description>WildFly Bootable JAR Plugin Parent</description>
+  <url>https://github.com/wildfly/wildfly-jar-maven-plugin</url>
   <inceptionYear>2019</inceptionYear>
   <licenses>
     <license>
@@ -111,6 +113,18 @@
 
     <client.jvm.jpms.args>--add-exports=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.management/javax.management=ALL-UNNAMED --add-opens=java.naming/javax.naming=ALL-UNNAMED</client.jvm.jpms.args>
 
+    <!-- release -->
+    <version.gpg.plugin>3.2.8</version.gpg.plugin>
+    <version.nxrm3.plugin>1.0.7</version.nxrm3.plugin>
+    <!-- maven-gpg-plugin -->
+    <!-- set this to "error" to require a GPG agent-->
+    <gpg.pinEntryMode>loopback</gpg.pinEntryMode>
+    <!-- Nexus deployment settings -->
+    <nexus.serverId>jboss</nexus.serverId>
+    <nexus.repo.name>wildfly-staging</nexus.repo.name>
+    <nexus.repo.url>https://repository.jboss.org/nexus</nexus.repo.url>
+    <nexus.destination.repo.name>releases</nexus.destination.repo.name>
+    <nexus.staging.tag>wildfly-jar-maven-plugin-${project.version}</nexus.staging.tag>   
   </properties>
 
   <repositories>
@@ -458,10 +472,13 @@
           </executions>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-release-plugin</artifactId>
+          <groupId>org.sonatype.plugins</groupId>
+          <artifactId>nxrm3-maven-plugin</artifactId>
+          <version>${version.nxrm3.plugin}</version>
           <configuration>
-            <tagNameFormat>@{project.version}</tagNameFormat>
+            <serverId>${nexus.serverId}</serverId>
+            <nexusUrl>${nexus.repo.url}</nexusUrl>
+            <repository>${nexus.repo.name}</repository>
           </configuration>
         </plugin>
       </plugins>
@@ -498,6 +515,30 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <developers>
@@ -525,50 +566,131 @@
             <wildfly-preview-build-repo-phase>none</wildfly-preview-build-repo-phase>
           </properties>
       </profile>
+      <!-- Temporarily override the jboss-parent jboss-release profile
+      to add configuration related to Nexus 3 deployment. These
+      are expected to come in a later jboss-parent release -->
+      <!-- TODO remove this content when it is included in jboss-parent -->
       <profile>
-        <id>release</id>
-         <build>
-           <plugins>
-             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-             </plugin>
-             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-             </plugin>
-             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-gpg-plugin</artifactId>
-               <version>3.2.7</version>
-               <executions>
-                 <execution>
-                   <id>sign-artifacts</id>
-                   <phase>verify</phase>
-                   <goals>
-                     <goal>sign</goal>
-                   </goals>
-                 </execution>
-               </executions>
-             </plugin>
-           </plugins>
-         </build>
+        <id>jboss-release</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-deploy-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>default-deploy</id>
+                  <phase>none</phase>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nxrm3-maven-plugin</artifactId>
+              <extensions>true</extensions>
+              <executions>
+                <execution>
+                  <id>nexus-deploy</id>
+                  <phase>deploy</phase>
+                  <goals>
+                    <goal>deploy</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <configuration>
+                <useAgent>true</useAgent>
+                <gpgArguments>
+                  <arg>--pinentry-mode</arg>
+                  <arg>${gpg.pinEntryMode}</arg>
+                </gpgArguments>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>gpg-sign</id>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+      <!-- Use this profile in combination with 'jboss-release' to use
+      the nxrm3-maven-plugin's 'staging-deploy' goal instead of its
+      'deploy' goal. Once the staged deployment is valdated, the
+      person or script doing the release  would move on to use
+      its 'staging-move' goal via a call to
+      'mvn nxrm3:staging-move -Pjboss-staging-move' -->
+      <!-- TODO remove this content when it is included in jboss-parent -->
+      <profile>
+        <id>jboss-staging-deploy</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nxrm3-maven-plugin</artifactId>
+              <executions>
+                <!-- Disable the jboss-release profile's 'deploy' goal execution -->
+                <execution>
+                  <id>nexus-deploy</id>
+                  <phase>none</phase>
+                </execution>
+                <execution>
+                  <id>nexus-staging.deploy</id>
+                  <phase>deploy</phase>
+                  <goals>
+                    <goal>staging-deploy</goal>
+                  </goals>
+                  <configuration>
+                    <tag>${nexus.staging.tag}</tag>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+      <!-- Used in release workflows that use the 'jboss-staging-deploy' profile,
+      this profile configures the nxrm3-maven-plugin to support command
+      line execution of its 'staging-move' goal. -->
+      <!-- TODO remove this content when it is included in jboss-parent -->
+      <profile>
+        <id>jboss-staging-move</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nxrm3-maven-plugin</artifactId>
+              <configuration>
+                <destinationRepository>${nexus.destination.repo.name}</destinationRepository>
+                <tag>${nexus.staging.tag}</tag>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+      <!-- Used in release workflows that use the 'jboss-staging-deploy' profile,
+      this profile configures the nxrm3-maven-plugin to support command
+      line execution of its 'staging-delete' goal. -->
+      <!-- TODO remove this content when it is included in jboss-parent -->
+      <profile>
+        <id>jboss-staging-delete</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nxrm3-maven-plugin</artifactId>
+              <configuration>
+                <tag>${nexus.staging.tag}</tag>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
       </profile>
   </profiles>
   <scm>

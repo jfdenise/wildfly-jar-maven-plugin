@@ -30,7 +30,7 @@
     <packaging>jar</packaging>
 
     <name>WildFly Bootable JAR Maven Plugin tests</name>
-
+    <description>WildFly Bootable JAR Maven Plugin tests</description>
     <properties>
         <test.jvm.args />
         <jbossas.dist>${basedir}/target/wildfly-full</jbossas.dist>
@@ -220,11 +220,18 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
+              <groupId>org.sonatype.plugins</groupId>
+              <artifactId>nxrm3-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>nexus-deploy</id>
+                  <phase>none</phase>
+                </execution>
+                <execution>
+                  <id>nexus-staging.deploy</id>
+                  <phase>none</phase>
+                </execution>
+              </executions>
             </plugin>
         </plugins>
     </build>
