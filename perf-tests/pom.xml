@@ -30,7 +30,7 @@
     <packaging>pom</packaging>
 
     <name>WildFly Bootable JAR Maven Plugin perf tests parent</name>
-
+    <description>WildFly Bootable JAR Maven Plugin perf tests parent</description>
     <properties>
         <skip.perf.tests>true</skip.perf.tests>
     </properties>
@@ -49,4 +49,22 @@
     <modules>
         <module>plugin-memory</module>
     </modules>
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.sonatype.plugins</groupId>
+          <artifactId>nxrm3-maven-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>nexus-deploy</id>
+              <phase>none</phase>
+            </execution>
+            <execution>
+              <id>nexus-staging.deploy</id>
+              <phase>none</phase>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
 </project>

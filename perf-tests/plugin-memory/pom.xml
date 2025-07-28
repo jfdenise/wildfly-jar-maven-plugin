@@ -30,7 +30,7 @@
     <packaging>pom</packaging>
 
     <name>WildFly Bootable JAR Maven Plugin memory consumption tests</name>
-
+    <description>WildFly Bootable JAR Maven Plugin memory consumption tests</description>
     <build>
         <plugins>
             <!-- provision a full server to be used as patching distribution source -->

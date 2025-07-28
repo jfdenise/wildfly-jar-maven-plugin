@@ -30,7 +30,7 @@
     <packaging>jar</packaging>
 
     <name>WildFly Bootable JAR cloud extensions</name>
-
+    <description>WildFly Bootable JAR cloud extensions</description>
     <dependencies>
         <dependency>
             <groupId>org.wildfly.core</groupId>
