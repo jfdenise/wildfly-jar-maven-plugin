@@ -56,7 +56,7 @@ public class JGroupsUtil {
                     for (int k = 0; k < protocols.getLength(); k++) {
                         Element protocol = (Element) protocols.item(k);
                         String type = protocol.getAttribute("type");
-                        if ("pbcast.GMS".equals(type)) {
+                        if (type.contains("NAKACK")) {
                             ret.add("batch");
                             ret.add("/subsystem=jgroups/stack=" + currentStack + "/protocol=AUTH:add(add-index=" + currentIndex + ")");
                             ret.add("/subsystem=jgroups/stack=" + currentStack + "/protocol=AUTH/token=digest:add(algorithm=SHA-512, shared-secret-reference={clear-text=" + JGROUPS_CLUSTER_PASSWORD + "})");

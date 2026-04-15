@@ -28,7 +28,7 @@
 
   <groupId>org.wildfly.plugins</groupId>
   <artifactId>wildfly-jar-parent</artifactId>
-  <version>12.0.1.Final-SNAPSHOT</version>
+  <version>13.0.0.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>WildFly Bootable JAR Plugin Parent</name>
@@ -52,13 +52,13 @@
   </modules>
 
   <properties>
-    <!-- Require Java 11 -->
-    <maven.compiler.target>11</maven.compiler.target>
-    <maven.compiler.source>11</maven.compiler.source>
-    <version.wildfly>35.0.0.Final</version.wildfly>
+    <!-- Require Java 17 -->
+    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <version.wildfly>39.0.1.Final</version.wildfly>
     <!-- docs properties -->
     <docs.project.branch>main</docs.project.branch>
-    <docs.wildfly.major>35</docs.wildfly.major>
+    <docs.wildfly.major>39</docs.wildfly.major>
 
     <version.junit>4.13.1</version.junit>
     <version.adoc-maven-plugin-descriptor>1.0.0.Alpha3</version.adoc-maven-plugin-descriptor>
@@ -67,13 +67,13 @@
     <version.org.apache.maven.plugin-plugin>3.9.0</version.org.apache.maven.plugin-plugin>
     <version.org.apache.maven.shared>0.13.1</version.org.apache.maven.shared>
     <version.org.asciidoctor>2.0.0</version.org.asciidoctor>
-    <version.org.jboss.galleon>6.0.4.Final</version.org.jboss.galleon>
-    <version.org.wildfly.core.wildfly-core>27.0.0.Final</version.org.wildfly.core.wildfly-core>
-    <version.org.wildfly.launcher>1.0.0.Final</version.org.wildfly.launcher>
-    <version.org.wildfly.common>1.7.0.Final</version.org.wildfly.common>
-    <version.org.wildfly.plugins.wildfly-plugin-tools>2.0.0.Alpha1</version.org.wildfly.plugins.wildfly-plugin-tools>
-    <version.org.wildfly.channel>1.2.1.Final</version.org.wildfly.channel>
-    <version.org.wildfly.prospero>1.3.0.Final</version.org.wildfly.prospero>
+    <version.org.jboss.galleon>7.0.5.Final</version.org.jboss.galleon>
+    <version.org.wildfly.core.wildfly-core>32.0.0.Beta7</version.org.wildfly.core.wildfly-core>
+    <version.org.wildfly.launcher>1.0.3.Final</version.org.wildfly.launcher>
+    <version.org.wildfly.common>2.0.1</version.org.wildfly.common>
+    <version.org.wildfly.plugins.wildfly-plugin-tools>2.0.0.Beta1</version.org.wildfly.plugins.wildfly-plugin-tools>
+    <version.org.wildfly.channel>1.2.2.Final</version.org.wildfly.channel>
+    <version.org.wildfly.prospero>1.3.1.Final</version.org.wildfly.prospero>
     <maven.surefire.plugin>3.5.4</maven.surefire.plugin>
     <!-- required by tests -->
     <version.org.apache.httpcomponents.httpclient>4.5.14</version.org.apache.httpcomponents.httpclient>
@@ -101,7 +101,7 @@
     <test.fpl>wildfly@maven(org.jboss.universe:community-universe)#${version.wildfly}</test.fpl>
     <test.ee.fpl>wildfly-ee@maven(org.jboss.universe:community-universe)#${version.wildfly}</test.ee.fpl>
     <test.version.wildfly>${version.wildfly}</test.version.wildfly>
-    <test.version.wildfly-ee.upgrade>34.0.1.Final</test.version.wildfly-ee.upgrade>
+    <test.version.wildfly-ee.upgrade>38.0.0.Final</test.version.wildfly-ee.upgrade>
     <test.patch.ee.product>WildFly EE</test.patch.ee.product>
     <test.patch.product>WildFly Full</test.patch.product>
     <test.patch.version>${version.wildfly}</test.patch.version>
